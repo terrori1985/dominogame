@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Домино - Игра</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container game-container">
+        <div class="game-header">
+            <h1>🎲 Домино</h1>
+            <div class="game-info">
+                <span id="gameCodeDisplay"></span>
+                <button id="leaveGameBtn" class="btn-leave">🚪 Выйти</button>
+            </div>
+        </div>
+
+        <div class="opponent-info">
+            <div class="avatar" id="opponentAvatar"></div>
+            <div class="opponent-name" id="opponentName">Противник</div>
+            <div class="cards-count" id="opponentCardsCount">Камней: 0</div>
+        </div>
+
+        <div id="gameTable" class="game-table green">
+            <div id="tableDominoes" class="table-dominoes"></div>
+        </div>
+
+        <div class="your-info">
+            <div class="avatar" id="yourAvatar"></div>
+            <div class="your-name" id="yourName">Вы</div>
+            <div class="your-hand">
+                <div id="playerHand" class="hand-container"></div>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="passBtn" class="btn-secondary">Пропустить ход</button>
+            <div class="turn-indicator" id="turnIndicator">⏳ Ожидание...</div>
+        </div>
+
+        <div id="gameStatus" class="game-status"></div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="game.js"></script>
+    <script src="multiplayer.js"></script>
+</body>
+</html>
