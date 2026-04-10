@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Домино - Лобби</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container lobby-container">
+        <div class="game-header">
+            <h1>🎲 Домино</h1>
+            <div id="telegramUser" class="telegram-user"></div>
+        </div>
+
+        <div class="lobby-content">
+            <!-- Блок 1: Создание игры -->
+            <div class="create-game-box" id="createGameBox">
+                <h2>🎯 Создать новую игру</h2>
+                <div class="settings-mini">
+                    <div class="setting-item">
+                        <label>🎴 Тип камней:</label>
+                        <select id="gameStoneType">
+                            <option value="classic">Классические (0-6) - 28 камней</option>
+                            <option value="extended">Расширенные (0-9) - 55 камней</option>
+                            <option value="max">Максимальные (0-12) - 91 камень</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>🪑 Дизайн стола:</label>
+                        <select id="gameTableTheme">
+                            <option value="green">🌿 Зелёный стол</option>
+                            <option value="wood">🪵 Деревянный стол</option>
+                            <option value="dark">🌙 Тёмный стол</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="createGameBtn" class="btn-primary">➕ Создать игру</button>
+            </div>
+
+            <!-- Блок 2: Присоединение по коду -->
+            <div class="join-game-box" id="joinGameBox">
+                <h2>🔗 Присоединиться к игре</h2>
+                <p class="join-hint">Введите 6-значный код игры, который вам отправил друг:</p>
+                <div class="code-input-group">
+                    <input type="text" id="gameCodeInput" placeholder="Например: A3F9K2" maxlength="6" class="code-input" autocomplete="off">
+                    <button id="joinGameBtn" class="btn-secondary">🔍 Присоединиться</button>
+                </div>
+            </div>
+
+            <!-- Блок 3: Ожидание игрока (показывается после создания игры) -->
+            <div id="waitingGame" class="waiting-game hidden">
+                <div class="waiting-header">
+                    <span class="waiting-spinner">⏳</span>
+                    <h2>Ожидание соперника...</h2>
+                </div>
+                
+                <div class="game-code-box">
+                    <p class="code-label">🎫 Код вашей игры:</p>
+                    <div class="big-code" id="gameCode">------</div>
+                    <button id="copyInviteBtn" class="btn-primary copy-btn">📋 Скопировать код</button>
+                    <p class="hint">Отправьте этот код другу в Telegram. Он сможет присоединиться к игре!</p>
+                </div>
+                
+                <div class="waiting-players">
+                    <h3>👥 Игроки в лобби:</h3>
+                    <ul id="playersList">
+                        <li>👤 Вы (создатель)</li>
+                    </ul>
+                </div>
+                
+                <button id="cancelGameBtn" class="btn-danger">❌ Отменить создание</button>
+            </div>
+
+            <!-- Блок 4: Информация для новичков -->
+            <div class="info-box" id="infoBox">
+                <h3>📖 Как играть?</h3>
+                <div class="info-steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <span>Создай игру → получи код</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <span>Отправь код другу</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <span>Друг вводит код → игра начинается!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="multiplayer.js"></script>
+</body>
+</html>
