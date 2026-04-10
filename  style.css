@@ -1,0 +1,562 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.app-container {
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+}
+
+.screen {
+    display: none;
+    padding: 20px;
+    min-height: 100vh;
+    animation: fadeIn 0.3s ease;
+}
+
+.screen.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== ШАПКА ========== */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.header h1 {
+    font-size: 28px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    letter-spacing: 2px;
+}
+
+.user-info {
+    background: rgba(255,255,255,0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    color: white;
+    font-size: 14px;
+}
+
+/* ========== ЛОББИ ========== */
+.lobby-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.create-section {
+    background: rgba(255,255,255,0.95);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.create-section h2 {
+    color: #333;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.settings {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.setting {
+    flex: 1;
+}
+
+.setting label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.setting select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 14px;
+    background: white;
+}
+
+.btn-create {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-create:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+}
+
+.btn-create:active {
+    transform: translateY(0);
+}
+
+.games-section {
+    background: rgba(255,255,255,0.95);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    color: #333;
+    font-size: 18px;
+}
+
+.btn-refresh {
+    background: #667eea;
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-refresh:hover {
+    transform: rotate(180deg);
+}
+
+.games-list {
+    max-height: 350px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.game-card {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e0e0e0;
+}
+
+.game-card:hover {
+    transform: translateX(5px);
+    background: #e8eaf6;
+}
+
+.game-card-info {
+    flex: 1;
+}
+
+.game-host {
+    font-weight: bold;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.game-details {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-join {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.connection-status {
+    margin-top: 20px;
+    text-align: center;
+    color: white;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background: #4caf50;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* ========== ОЖИДАНИЕ ========== */
+.waiting-container {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.waiting-animation {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 30px;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: ringPulse 2s ease-out infinite;
+}
+
+.pulse-ring.delay-1 { animation-delay: 0.66s; }
+.pulse-ring.delay-2 { animation-delay: 1.33s; }
+
+@keyframes ringPulse {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.waiting-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-10px); }
+}
+
+.waiting-container h2 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+.waiting-text {
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 30px;
+}
+
+.players-waiting {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.player-card {
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 15px;
+    text-align: center;
+    width: 100px;
+}
+
+.player-card .avatar {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.player-card span {
+    color: white;
+    font-size: 14px;
+}
+
+.vs {
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.btn-cancel {
+    background: rgba(244,67,54,0.9);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* ========== ИГРОВОЙ ЭКРАН ========== */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+}
+
+.opponent-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.opponent-avatar {
+    width: 45px;
+    height: 45px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.opponent-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.opponent-info span:first-child {
+    color: white;
+    font-weight: bold;
+}
+
+.cards-left {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+}
+
+.game-score {
+    background: rgba(0,0,0,0.5);
+    padding: 8px 15px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+}
+
+.btn-leave {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    color: white;
+}
+
+.game-table {
+    min-height: 280px;
+    border-radius: 25px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+}
+
+.game-table.green { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); }
+.game-table.wood { background: linear-gradient(135deg, #795548 0%, #8d6e63 100%); }
+.game-table.dark { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+
+.table-dominoes {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 200px;
+}
+
+.domino-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 70px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+    cursor: pointer;
+    animation: cardAppear 0.3s ease;
+}
+
+@keyframes cardAppear {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.domino-card.playable {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    cursor: pointer;
+    animation: cardGlow 0.5s infinite;
+}
+
+@keyframes cardGlow {
+    0%, 100% { box-shadow: 0 4px 12px rgba(76,175,80,0.4); }
+    50% { box-shadow: 0 4px 20px rgba(76,175,80,0.8); }
+}
+
+.domino-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.domino-values {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.your-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 20px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.your-avatar {
+    font-size: 24px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.hand-container {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.game-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    gap: 15px;
+}
+
+.btn-pass {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    flex: 1;
+}
+
+.turn-indicator {
+    padding: 10px 20px;
+    border-radius: 30px;
+    text-align: center;
+    font-weight: bold;
+    flex: 1;
+}
+
+.turn-indicator.your-turn {
+    background: #4caf50;
+    color: white;
+    animation: turnPulse 1s infinite;
+}
+
+.turn-indicator.opponent-turn {
+    background: #ff9800;
+    color: white;
+}
+
+.turn-indicator.waiting {
+    background: #9e9e9e;
+    color: white;
+}
+
+@keyframes turnPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.loader {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+}
+
+.empty-games {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.empty-games span {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none;
+}
