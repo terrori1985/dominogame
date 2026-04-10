@@ -54,12 +54,14 @@ function createTable(hostId, hostName, maxPlayers = 4) {
     boardEnds: null,
     boneyard: [],
     currentTurn: 0,
-    scores: {},
+    scores: {},      // Общие очки за все раунды (до 101)
+    roundScores: {}, // Очки текущего раунда
     passCount: 0,
     createdAt: Date.now(),
-    totalGames: 0  // Счетчик сыгранных игр за столом
+    totalGames: 0
   };
   tables.set(tableId, table);
+  console.log(`Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -70,6 +72,8 @@ function dealTiles(table) {
   table.players.forEach(p => {
     p.hand = allTiles.splice(0, perPlayer);
     p.handCount = p.hand.length;
+    // Сбрасываем очки раунда для каждого игрока
+    table.roundScores[p.id] = 0;
   });
   table.boneyard = allTiles;
   table.board = [];
@@ -77,6 +81,7 @@ function dealTiles(table) {
   table.passCount = 0;
   table.currentTurn = 0;
 
+  // Находим игрока с самым большим дублем для первого хода
   let startIdx = 0;
   let highestDouble = -1;
   table.players.forEach((p, i) => {
@@ -88,6 +93,7 @@ function dealTiles(table) {
     });
   });
   table.currentTurn = startIdx;
+  console.log(`Game dealt, first turn: player ${startIdx}`);
 }
 
 function getPublicTable(table) {
@@ -118,10 +124,10 @@ function getTableState(table, playerId) {
       name: p.name,
       avatar: p.avatar,
       handCount: p.hand ? p.hand.length : 0,
-      score: table.scores[p.id] || 0
+      score: table.scores[p.id] || 0  // ВАЖНО: передаем общие очки
     })),
     myHand: player.hand || [],
-    scores: table.scores,
+    scores: table.scores,  // ВАЖНО: передаем объект со всеми очками
     hostId: table.hostId,
     totalGames: table.totalGames
   };
@@ -191,6 +197,7 @@ function drawFromBoneyard(table, playerId) {
 
   if (table.boneyard.length === 0) return { error: 'Boneyard empty' };
 
+  // Проверяем, может ли игрок походить
   if (table.boardEnds && player.hand.some(t => canPlayTile(t, table.boardEnds))) {
     return { error: 'You have a playable tile' };
   }
@@ -221,32 +228,53 @@ function passTurn(table, playerId) {
   return { success: true };
 }
 
-function calculateScores(table, winnerId) {
-  const scores = {};
+// Подсчет очков в конце раунда
+function calculateRoundScores(table, winnerId) {
+  const roundScores = {};
   let totalPips = 0;
   
   table.players.forEach(p => {
+    // Суммируем очки на руках у каждого игрока
     const pips = p.hand.reduce((sum, t) => sum + t[0] + t[1], 0);
-    scores[p.id] = pips;
+    roundScores[p.id] = pips;
     totalPips += pips;
-    if (!table.scores[p.id]) table.scores[p.id] = 0;
   });
 
+  // Победитель получает сумму очков всех соперников
   if (winnerId) {
-    table.scores[winnerId] = (table.scores[winnerId] || 0) + totalPips;
-    return { winner: winnerId, scores, totalPips };
-  } else {
+    const winnerPoints = totalPips - roundScores[winnerId];
+    // Добавляем к общему счету
+    table.scores[winnerId] = (table.scores[winnerId] || 0) + winnerPoints;
+    console.log(`Winner ${winnerId} gets ${winnerPoints} points. Total: ${table.scores[winnerId]}`);
+    return { winner: winnerId, roundScores, totalPips: winnerPoints };
+  } 
+  // При рыбе - побеждает игрок с наименьшим количеством очков
+  else {
     let minPips = Infinity;
     let winner = null;
     table.players.forEach(p => {
-      if (scores[p.id] < minPips) {
-        minPips = scores[p.id];
+      if (roundScores[p.id] < minPips) {
+        minPips = roundScores[p.id];
         winner = p.id;
       }
     });
-    if (winner) table.scores[winner] = (table.scores[winner] || 0) + totalPips;
-    return { winner, scores, totalPips };
+    if (winner) {
+      const winnerPoints = totalPips - roundScores[winner];
+      table.scores[winner] = (table.scores[winner] || 0) + winnerPoints;
+      console.log(`Fish! Winner ${winner} gets ${winnerPoints} points. Total: ${table.scores[winner]}`);
+    }
+    return { winner, roundScores, totalPips: winnerPoints };
   }
+}
+
+// Проверка, не закончилась ли партия (кто-то набрал 101+ очков)
+function checkGameEnd(table) {
+  for (const player of table.players) {
+    if ((table.scores[player.id] || 0) >= 101) {
+      return { gameEnd: true, loserId: player.id };
+    }
+  }
+  return { gameEnd: false };
 }
 
 // Socket.IO
@@ -256,6 +284,7 @@ io.on('connection', (socket) => {
   socket.on('register', ({ name, avatar, telegramId }) => {
     players.set(socket.id, { id: socket.id, name, avatar, telegramId });
     socket.emit('registered', { id: socket.id });
+    console.log(`Player registered: ${name}`);
   });
 
   socket.on('getTables', () => {
@@ -275,6 +304,7 @@ io.on('connection', (socket) => {
     const table = createTable(socket.id, player.name, maxPlayers || 4);
     table.players.push({ ...player, hand: [], handCount: 0 });
     table.scores[socket.id] = 0;
+    table.roundScores[socket.id] = 0;
 
     socket.join(table.id);
     socket.emit('tableCreated', { tableId: table.id });
@@ -284,6 +314,7 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
+    console.log(`Table created: ${table.id}`);
   });
 
   socket.on('joinTable', ({ tableId }) => {
@@ -315,6 +346,7 @@ io.on('connection', (socket) => {
 
     table.players.push({ ...player, hand: [], handCount: 0 });
     if (!table.scores[socket.id]) table.scores[socket.id] = 0;
+    if (!table.roundScores[socket.id]) table.roundScores[socket.id] = 0;
     socket.join(tableId);
 
     io.to(tableId).emit('playerJoined', { 
@@ -326,6 +358,7 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
+    console.log(`Player ${player.name} joined table ${tableId}`);
   });
 
   socket.on('startGame', ({ tableId }) => {
@@ -358,23 +391,59 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
+    console.log(`Game started at table ${tableId}`);
   });
 
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = playTile(table, socket.id, tileIdx, side);
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
     if (result.win) {
-      const { winner, scores, totalPips } = calculateScores(table, socket.id);
-      table.status = 'finished';
-      io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino', totalPips });
+      // Раунд закончен, считаем очки
+      const { winner, totalPips } = calculateRoundScores(table, socket.id);
+      
+      // Проверяем, не закончилась ли партия
+      const { gameEnd, loserId } = checkGameEnd(table);
+      
+      if (gameEnd) {
+        // Партия закончена (кто-то набрал 101+ очков)
+        table.status = 'finished';
+        io.to(tableId).emit('gameOver', { 
+          winner, 
+          scores: table.scores, 
+          reason: 'score101',
+          totalPips,
+          loser: loserId
+        });
+        console.log(`Game over by score 101! Winner: ${winner}, Loser: ${loserId}`);
+      } else {
+        // Просто конец раунда, начинаем новый
+        io.to(tableId).emit('roundEnd', { winner, scores: table.scores, totalPips });
+        // Начинаем новый раунд
+        dealTiles(table);
+        table.players.forEach(p => {
+          const playerSocket = io.sockets.sockets.get(p.id);
+          if (playerSocket) {
+            playerSocket.emit('gameStarted', getTableState(table, p.id));
+          }
+        });
+      }
     } else {
+      // Просто обновляем состояние
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
       });
       io.to(tableId).emit('tilePlayed', { playerId: socket.id });
     }
@@ -382,33 +451,70 @@ io.on('connection', (socket) => {
 
   socket.on('drawTile', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = drawFromBoneyard(table, socket.id);
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
-      if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
+      if (playerSocket) {
+        playerSocket.emit('tableState', getTableState(table, p.id));
+      }
     });
     socket.emit('tileDrawn', { tile: result.drawnTile });
   });
 
   socket.on('passTurn', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = passTurn(table, socket.id);
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
     if (result.blocked) {
-      const { winner, scores, totalPips } = calculateScores(table, null);
-      table.status = 'finished';
-      io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked', totalPips });
+      // Рыба - считаем очки
+      const { winner, totalPips } = calculateRoundScores(table, null);
+      
+      const { gameEnd, loserId } = checkGameEnd(table);
+      
+      if (gameEnd) {
+        table.status = 'finished';
+        io.to(tableId).emit('gameOver', { 
+          winner, 
+          scores: table.scores, 
+          reason: 'score101',
+          totalPips,
+          loser: loserId
+        });
+      } else {
+        io.to(tableId).emit('roundEnd', { winner, scores: table.scores, totalPips });
+        dealTiles(table);
+        table.players.forEach(p => {
+          const playerSocket = io.sockets.sockets.get(p.id);
+          if (playerSocket) {
+            playerSocket.emit('gameStarted', getTableState(table, p.id));
+          }
+        });
+      }
     } else {
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
       });
     }
   });
@@ -416,8 +522,16 @@ io.on('connection', (socket) => {
   socket.on('playAgain', ({ tableId }) => {
     const table = tables.get(tableId);
     if (!table) return;
-    if (table.hostId !== socket.id) return socket.emit('error', 'Not host');
+    if (table.hostId !== socket.id) {
+      socket.emit('error', 'Not host');
+      return;
+    }
 
+    // Сбрасываем общие очки для новой партии
+    table.players.forEach(p => {
+      table.scores[p.id] = 0;
+      table.roundScores[p.id] = 0;
+    });
     table.status = 'playing';
     table.board = [];
     table.boardEnds = null;
@@ -425,14 +539,21 @@ io.on('connection', (socket) => {
 
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
-      if (playerSocket) playerSocket.emit('gameStarted', getTableState(table, p.id));
+      if (playerSocket) {
+        playerSocket.emit('gameStarted', getTableState(table, p.id));
+      }
     });
+    console.log(`Rematch started at table ${tableId}, scores reset`);
   });
 
   socket.on('leaveTable', ({ tableId }) => handleLeave(socket, tableId));
+  
   socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
     tables.forEach((table, tableId) => {
-      if (table.players.some(p => p.id === socket.id)) handleLeave(socket, tableId);
+      if (table.players.some(p => p.id === socket.id)) {
+        handleLeave(socket, tableId);
+      }
     });
     players.delete(socket.id);
   });
@@ -446,16 +567,21 @@ io.on('connection', (socket) => {
 
     if (table.players.length === 0) {
       tables.delete(tableId);
+      console.log(`Table ${tableId} deleted`);
     } else {
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
         table.hostName = table.players[0].name;
       }
-      if (table.status === 'playing' && table.players.length < 2) table.status = 'waiting';
+      if (table.status === 'playing' && table.players.length < 2) {
+        table.status = 'waiting';
+      }
       
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
       });
       io.to(tableId).emit('playerLeft', { playerId: socket.id });
     }
