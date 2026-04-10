@@ -6,35 +6,22 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO с правильной конфигурацией
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  },
+  cors: { origin: '*', methods: ['GET', 'POST'] },
   transports: ['websocket', 'polling'],
   allowEIO3: true
 });
 
-// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
-});
-
-// Хранилище
 const tables = new Map();
 const players = new Map();
 
-// Игровая логика
 function createDominoSet() {
   const tiles = [];
   for (let i = 0; i <= 6; i++) {
@@ -69,10 +56,10 @@ function createTable(hostId, hostName, maxPlayers = 4) {
     currentTurn: 0,
     scores: {},
     passCount: 0,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    totalGames: 0  // Счетчик сыгранных игр за столом
   };
   tables.set(tableId, table);
-  console.log(`Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -135,7 +122,8 @@ function getTableState(table, playerId) {
     })),
     myHand: player.hand || [],
     scores: table.scores,
-    hostId: table.hostId
+    hostId: table.hostId,
+    totalGames: table.totalGames
   };
 }
 
@@ -246,7 +234,7 @@ function calculateScores(table, winnerId) {
 
   if (winnerId) {
     table.scores[winnerId] = (table.scores[winnerId] || 0) + totalPips;
-    return { winner: winnerId, scores };
+    return { winner: winnerId, scores, totalPips };
   } else {
     let minPips = Infinity;
     let winner = null;
@@ -257,18 +245,17 @@ function calculateScores(table, winnerId) {
       }
     });
     if (winner) table.scores[winner] = (table.scores[winner] || 0) + totalPips;
-    return { winner, scores };
+    return { winner, scores, totalPips };
   }
 }
 
-// Socket.IO события
+// Socket.IO
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.on('register', ({ name, avatar, telegramId }) => {
     players.set(socket.id, { id: socket.id, name, avatar, telegramId });
     socket.emit('registered', { id: socket.id });
-    console.log(`Player registered: ${name}`);
   });
 
   socket.on('getTables', () => {
@@ -327,7 +314,7 @@ io.on('connection', (socket) => {
     }
 
     table.players.push({ ...player, hand: [], handCount: 0 });
-    table.scores[socket.id] = 0;
+    if (!table.scores[socket.id]) table.scores[socket.id] = 0;
     socket.join(tableId);
 
     io.to(tableId).emit('playerJoined', { 
@@ -357,6 +344,7 @@ io.on('connection', (socket) => {
     }
 
     table.status = 'playing';
+    table.totalGames++;
     dealTiles(table);
 
     table.players.forEach(p => {
@@ -374,80 +362,53 @@ io.on('connection', (socket) => {
 
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
     const table = tables.get(tableId);
-    if (!table) {
-      socket.emit('error', 'Table not found');
-      return;
-    }
+    if (!table) return socket.emit('error', 'Table not found');
 
     const result = playTile(table, socket.id, tileIdx, side);
-    if (result.error) {
-      socket.emit('error', result.error);
-      return;
-    }
+    if (result.error) return socket.emit('error', result.error);
 
     if (result.win) {
-      const { winner, scores } = calculateScores(table, socket.id);
+      const { winner, scores, totalPips } = calculateScores(table, socket.id);
       table.status = 'finished';
-      io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino' });
+      io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino', totalPips });
     } else {
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) {
-          playerSocket.emit('tableState', getTableState(table, p.id));
-        }
+        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
       });
-      io.to(tableId).emit('tilePlayed', {
-        playerId: socket.id,
-        playerName: table.players.find(p => p.id === socket.id)?.name
-      });
+      io.to(tableId).emit('tilePlayed', { playerId: socket.id });
     }
   });
 
   socket.on('drawTile', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) {
-      socket.emit('error', 'Table not found');
-      return;
-    }
+    if (!table) return socket.emit('error', 'Table not found');
 
     const result = drawFromBoneyard(table, socket.id);
-    if (result.error) {
-      socket.emit('error', result.error);
-      return;
-    }
+    if (result.error) return socket.emit('error', result.error);
 
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
-      if (playerSocket) {
-        playerSocket.emit('tableState', getTableState(table, p.id));
-      }
+      if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
     });
     socket.emit('tileDrawn', { tile: result.drawnTile });
   });
 
   socket.on('passTurn', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) {
-      socket.emit('error', 'Table not found');
-      return;
-    }
+    if (!table) return socket.emit('error', 'Table not found');
 
     const result = passTurn(table, socket.id);
-    if (result.error) {
-      socket.emit('error', result.error);
-      return;
-    }
+    if (result.error) return socket.emit('error', result.error);
 
     if (result.blocked) {
-      const { winner, scores } = calculateScores(table, null);
+      const { winner, scores, totalPips } = calculateScores(table, null);
       table.status = 'finished';
-      io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked' });
+      io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked', totalPips });
     } else {
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) {
-          playerSocket.emit('tableState', getTableState(table, p.id));
-        }
+        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
       });
     }
   });
@@ -455,10 +416,7 @@ io.on('connection', (socket) => {
   socket.on('playAgain', ({ tableId }) => {
     const table = tables.get(tableId);
     if (!table) return;
-    if (table.hostId !== socket.id) {
-      socket.emit('error', 'Not host');
-      return;
-    }
+    if (table.hostId !== socket.id) return socket.emit('error', 'Not host');
 
     table.status = 'playing';
     table.board = [];
@@ -467,21 +425,14 @@ io.on('connection', (socket) => {
 
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
-      if (playerSocket) {
-        playerSocket.emit('gameStarted', getTableState(table, p.id));
-      }
+      if (playerSocket) playerSocket.emit('gameStarted', getTableState(table, p.id));
     });
   });
 
-  socket.on('leaveTable', ({ tableId }) => {
-    handleLeave(socket, tableId);
-  });
-
+  socket.on('leaveTable', ({ tableId }) => handleLeave(socket, tableId));
   socket.on('disconnect', () => {
     tables.forEach((table, tableId) => {
-      if (table.players.some(p => p.id === socket.id)) {
-        handleLeave(socket, tableId);
-      }
+      if (table.players.some(p => p.id === socket.id)) handleLeave(socket, tableId);
     });
     players.delete(socket.id);
   });
@@ -500,16 +451,11 @@ io.on('connection', (socket) => {
         table.hostId = table.players[0].id;
         table.hostName = table.players[0].name;
       }
-      
-      if (table.status === 'playing' && table.players.length < 2) {
-        table.status = 'waiting';
-      }
+      if (table.status === 'playing' && table.players.length < 2) table.status = 'waiting';
       
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
-        if (playerSocket) {
-          playerSocket.emit('tableState', getTableState(table, p.id));
-        }
+        if (playerSocket) playerSocket.emit('tableState', getTableState(table, p.id));
       });
       io.to(tableId).emit('playerLeft', { playerId: socket.id });
     }
