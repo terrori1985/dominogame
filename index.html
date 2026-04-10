@@ -35,11 +35,9 @@ html, body {
   user-select: none;
 }
 
-/* SCREENS */
 .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
 .screen.active { display: flex; }
 
-/* LOBBY */
 #lobby-screen {
   background: linear-gradient(160deg, #0d2d1a 0%, #1a4a2e 50%, #0d2d1a 100%);
 }
@@ -159,7 +157,6 @@ html, body {
   border: 1px solid var(--panel-border);
 }
 
-/* WAITING ROOM */
 #waiting-screen {
   background: linear-gradient(160deg, #0d2d1a 0%, #1a4a2e 50%, #0d2d1a 100%);
 }
@@ -222,16 +219,6 @@ html, body {
 .empty-icon { font-size: 28px; color: rgba(255,255,255,0.15); }
 .empty-text { font-size: 13px; color: rgba(255,255,255,0.25); }
 
-.waiting-footer {
-  padding: 16px; background: var(--panel-bg);
-  border-top: 1px solid var(--panel-border);
-}
-.waiting-status {
-  text-align: center; margin-bottom: 12px;
-  font-size: 14px; color: rgba(255,255,255,0.6);
-}
-
-/* GAME SCREEN */
 #game-screen {
   background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);
   overflow: hidden;
@@ -805,7 +792,7 @@ html, body {
 <script>
 const state = {
   socket: null,
-  player: { id: null, name: 'Игрок', avatar: '🎲' },
+  player: { id: null, name: 'Игрок', avatar: '🎲', telegramId: null },
   tableId: null,
   tableState: null,
   selectedTileIdx: null,
@@ -815,32 +802,6 @@ const state = {
   isConnected: false
 };
 
-// ── AUDIO ENGINE ───────────────────────────────────
-let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx && window.AudioContext) audioCtx = new AudioContext();
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function playSound(type) {
-  try {
-    const ctx = getAudioCtx();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-    const sounds = {
-      place: () => { const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(440,now);o.frequency.exponentialRampToValueAtTime(280,now+0.15);g.gain.setValueAtTime(0.3,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);o.start(now);o.stop(now+0.2); },
-      draw: () => { const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='triangle';o.frequency.setValueAtTime(300,now);o.frequency.exponentialRampToValueAtTime(500,now+0.1);g.gain.setValueAtTime(0.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);o.start(now);o.stop(now+0.15); },
-      win: () => { [523,659,784,1047].forEach((freq,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;const t=now+i*0.12;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);o.start(t);o.stop(t+0.35);}); },
-      join: () => { [660,880].forEach((freq,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;const t=now+i*0.1;g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.2);}); },
-      turn: () => { const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(600,now);o.frequency.exponentialRampToValueAtTime(900,now+0.08);g.gain.setValueAtTime(0.2,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);o.start(now);o.stop(now+0.15); }
-    };
-    if (sounds[type]) sounds[type]();
-  } catch(e) {}
-}
-
-function vibrate(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
-
 function showToast(msg, duration=2500) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -848,17 +809,16 @@ function showToast(msg, duration=2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-function spawnConfetti() {
-  const colors = ['#d4a843','#f0c862','#50c878','#e05050','#6ab4f5','#ffffff'];
-  for (let i=0;i<60;i++) {
-    setTimeout(()=>{
-      const el=document.createElement('div');
-      el.className='confetti-piece';
-      el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${1.5+Math.random()*1.5}s;animation-delay:${Math.random()*0.5}s;transform:rotate(${Math.random()*360}deg);`;
-      document.body.appendChild(el);
-      el.addEventListener('animationend',()=>el.remove());
-    },i*30);
-  }
+function vibrate(pattern) { if (navigator.vibrate) navigator.vibrate(pattern); }
+
+function escHtml(s) { 
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); 
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
 const DOT_LAYOUTS = {0:[],1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[0,2],[2,0],[2,2]],5:[[0,0],[0,2],[1,1],[2,0],[2,2]],6:[[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]]};
@@ -894,40 +854,59 @@ function createTileEl(a, b, size='hand', isNew=false, isSelected=false, isPlayab
   return tile;
 }
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ── SOCKET CONNECTION ──────────────────────────────
+// ГЛАВНОЕ - ПОДКЛЮЧЕНИЕ WEBSOCKET
 function connectSocket() {
-  const socket = io({
+  // Используем тот же хост, что и страница
+  const socketUrl = window.location.origin;
+  
+  console.log('Connecting to Socket.IO at:', socketUrl);
+  
+  const socket = io(socketUrl, {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 10,
-    reconnectionDelay: 1000
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000
   });
+  
   state.socket = socket;
 
   socket.on('connect', () => {
     state.isConnected = true;
-    socket.emit('register', { name: state.player.name, avatar: state.player.avatar, telegramId: state.player.telegramId });
-    refreshTables();
+    console.log('✅ Socket connected! ID:', socket.id);
     showToast('✅ Подключено к серверу');
+    
+    socket.emit('register', { 
+      name: state.player.name, 
+      avatar: state.player.avatar, 
+      telegramId: state.player.telegramId 
+    });
+    
+    refreshTables();
   });
 
   socket.on('connect_error', (err) => {
+    console.error('❌ Connection error:', err.message);
     showToast('⚠️ Ошибка подключения: ' + err.message);
   });
 
-  socket.on('registered', ({ id }) => { state.player.id = id; });
+  socket.on('disconnect', (reason) => {
+    console.log('Disconnected:', reason);
+    state.isConnected = false;
+    showToast('⚠️ Соединение потеряно, переподключение...');
+  });
+
+  socket.on('registered', ({ id }) => { 
+    state.player.id = id;
+    console.log('Registered with ID:', id);
+  });
 
   socket.on('tablesList', (tables) => {
     state.allTables = tables;
     renderTables(tables);
     updateCounters();
+    console.log('Tables received:', tables.length);
   });
 
   socket.on('tablesUpdate', (tables) => {
@@ -940,7 +919,7 @@ function connectSocket() {
     state.tableId = tableId;
     showScreen('waiting-screen');
     document.getElementById('table-id-display').textContent = tableId;
-    playSound('join');
+    console.log('Table created:', tableId);
   });
 
   socket.on('tableState', (ts) => {
@@ -950,7 +929,6 @@ function connectSocket() {
   });
 
   socket.on('playerJoined', ({ player }) => {
-    playSound('join');
     showToast(`${player.name} присоединился!`);
     vibrate(50);
   });
@@ -959,29 +937,35 @@ function connectSocket() {
     state.tableState = ts;
     showScreen('game-screen');
     renderGame(ts);
-    playSound('join');
     vibrate([50,30,50]);
     showToast('🎲 Игра началась!');
   });
 
-  socket.on('tilePlayed', ({ playerName }) => { playSound('place'); vibrate(30); });
-  socket.on('tileDrawn', ({ tile }) => { playSound('draw'); showToast(`Взята кость [${tile[0]}|${tile[1]}]`); });
+  socket.on('tilePlayed', ({ playerName }) => { vibrate(30); });
+  socket.on('tileDrawn', ({ tile }) => { showToast(`Взята кость [${tile[0]}|${tile[1]}]`); });
   socket.on('playerLeft', () => { showToast('Игрок покинул стол'); });
 
   socket.on('gameOver', ({ winner, scores, reason }) => {
     state.gamesPlayed++;
     const isWin = winner === state.player.id;
-    if (isWin) { spawnConfetti(); playSound('win'); vibrate([100,50,100,50,200]); }
-    else { playSound('lose'); vibrate([200]); }
+    if (isWin) { 
+      showToast('🏆 ПОБЕДА! 🏆');
+      vibrate([100,50,100,50,200]); 
+    } else { 
+      vibrate([200]); 
+    }
     showGameOver(winner, scores, reason);
   });
 
-  socket.on('error', (msg) => { showToast('⚠️ ' + msg); vibrate([50,50,50]); });
+  socket.on('error', (msg) => { 
+    showToast('⚠️ ' + msg); 
+    vibrate([50,50,50]);
+  });
 
   return socket;
 }
 
-function refreshTables() { if (state.socket) state.socket.emit('getTables'); }
+function refreshTables() { if (state.socket && state.isConnected) state.socket.emit('getTables'); }
 
 function filterTables() {
   const q = document.getElementById('search-input').value.toLowerCase();
@@ -991,7 +975,7 @@ function filterTables() {
 
 function renderTables(tables) {
   const list = document.getElementById('tables-list');
-  if (!tables.length) {
+  if (!tables || tables.length === 0) {
     list.innerHTML = `<div class="no-tables"><div>🎲</div>Активных столов нет.<br>Создайте свой или подождите.</div>`;
     return;
   }
@@ -1000,7 +984,7 @@ function renderTables(tables) {
 
 function updateCounters() {
   document.getElementById('cnt-tables').textContent = state.allTables.length;
-  const totalPlayers = state.allTables.reduce((s,t)=>s+t.playerCount,0);
+  const totalPlayers = state.allTables.reduce((s,t)=>s + (t.playerCount || 0),0);
   document.getElementById('cnt-players').textContent = totalPlayers;
   document.getElementById('cnt-games').textContent = state.gamesPlayed;
 }
@@ -1016,16 +1000,23 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 
 function createTable() {
   const maxPlayers = parseInt(document.getElementById('max-players').value);
-  state.socket.emit('createTable', { maxPlayers, isPrivate: false });
-  closeModal('create-modal');
+  if (state.socket && state.isConnected) {
+    state.socket.emit('createTable', { maxPlayers, isPrivate: false });
+    closeModal('create-modal');
+  } else {
+    showToast('Нет соединения с сервером');
+  }
 }
 
 function joinTable(tableId) {
-  playSound('join');
-  state.tableId = tableId;
-  state.socket.emit('joinTable', { tableId });
-  showScreen('waiting-screen');
-  document.getElementById('table-id-display').textContent = tableId;
+  if (state.socket && state.isConnected) {
+    state.tableId = tableId;
+    state.socket.emit('joinTable', { tableId });
+    showScreen('waiting-screen');
+    document.getElementById('table-id-display').textContent = tableId;
+  } else {
+    showToast('Нет соединения с сервером');
+  }
 }
 
 function renderWaiting(ts) {
@@ -1043,7 +1034,7 @@ function renderWaiting(ts) {
   document.getElementById('waiting-status').textContent = ts.players.length>=2 ? (isHost?`${ts.players.length}/${ts.maxPlayers} игроков — можно начинать!`:'Ожидаем хозяина...') : `Нужно ещё ${2-ts.players.length} игрока`;
 }
 
-function startGame() { state.socket.emit('startGame', { tableId: state.tableId }); }
+function startGame() { if (state.socket) state.socket.emit('startGame', { tableId: state.tableId }); }
 
 function leaveTable() {
   if (state.socket) state.socket.emit('leaveTable', { tableId: state.tableId });
@@ -1078,12 +1069,9 @@ function renderGame(ts) {
     drawBtn.disabled = !(!canPlay && ts.boneyardCount>0) || !ts.boardEnds;
     passBtn.disabled = !(ts.boneyardCount===0 && !canPlay);
     document.getElementById('turn-banner').style.display = 'block';
-    if (!document.getElementById('turn-banner').dataset.shown) { playSound('turn'); vibrate(100); }
-    document.getElementById('turn-banner').dataset.shown = '1';
   } else {
     drawBtn.disabled = true; passBtn.disabled = true;
     document.getElementById('turn-banner').style.display = 'none';
-    document.getElementById('turn-banner').dataset.shown = '';
   }
   document.getElementById('my-count').textContent = ts.myHand.length;
 }
@@ -1117,7 +1105,6 @@ function renderHand(hand, ts) {
 function selectTile(idx, tile, ts) {
   if (!state.isMyTurn) { showToast('Сейчас не ваш ход!'); return; }
   if (!canPlayTile(tile, ts.boardEnds)) { showToast('Эту кость нельзя поставить!'); vibrate(30); return; }
-  playSound('draw');
   state.selectedTileIdx = idx;
   renderHand(ts.myHand, ts);
   if (!ts.boardEnds) { confirmPlay('right'); return; }
@@ -1143,8 +1130,8 @@ function confirmPlay(side) {
   state.selectedTileIdx = null;
 }
 
-function drawTile() { state.socket.emit('drawTile', { tableId: state.tableId }); }
-function passTurn() { state.socket.emit('passTurn', { tableId: state.tableId }); }
+function drawTile() { if (state.socket) state.socket.emit('drawTile', { tableId: state.tableId }); }
+function passTurn() { if (state.socket) state.socket.emit('passTurn', { tableId: state.tableId }); }
 
 function showGameOver(winnerId, scores, reason) {
   const ts = state.tableState;
@@ -1182,7 +1169,7 @@ function init() {
     if (user) {
       state.player.name = user.first_name + (user.last_name ? ' '+user.last_name : '');
       state.player.telegramId = user.id;
-      state.player.avatar = user.first_name[0].toUpperCase();
+      state.player.avatar = user.first_name ? user.first_name[0].toUpperCase() : '👤';
     }
   } else {
     const names = ['Виктор','Анна','Максим','Олена','Дмитро','Катерина'];
@@ -1192,6 +1179,8 @@ function init() {
   }
   document.getElementById('lobby-name').textContent = state.player.name;
   document.getElementById('lobby-avatar').textContent = state.player.avatar;
+  
+  // Запускаем подключение
   connectSocket();
 }
 
