@@ -1,0 +1,458 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    padding: 20px;
+}
+
+/* ========== ШАПКА ========== */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.game-header h1 {
+    color: #333;
+    font-size: 28px;
+}
+
+.telegram-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f0f0f0;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* ========== ЛОББИ ========== */
+.lobby-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.create-game-box, .join-game-box {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+}
+
+.create-game-box h2, .join-game-box h2 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 22px;
+}
+
+.settings-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.settings-mini label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.settings-mini select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+}
+
+.code-input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.code-input {
+    flex: 1;
+    padding: 14px;
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 3px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* ========== ОЖИДАНИЕ ИГРЫ ========== */
+.waiting-game {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    border: 2px solid #667eea;
+}
+
+.waiting-game h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.game-code-box {
+    background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.big-code {
+    font-size: 48px;
+    font-weight: bold;
+    letter-spacing: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 15px 0;
+    font-family: monospace;
+}
+
+.hint {
+    color: #666;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.waiting-players {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.waiting-players h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.waiting-players ul {
+    list-style: none;
+    padding: 0;
+}
+
+.waiting-players li {
+    padding: 12px 15px;
+    margin: 8px 0;
+    background: #f5f5f5;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+}
+
+/* ========== ИГРОВОЙ СТОЛ ========== */
+.game-table {
+    min-height: 300px;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.game-table.green {
+    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+}
+
+.game-table.wood {
+    background: linear-gradient(135deg, #795548 0%, #8d6e63 100%);
+}
+
+.game-table.dark {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.game-table.marble {
+    background: linear-gradient(135deg, #bdbdbd 0%, #9e9e9e 100%);
+}
+
+.table-dominoes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* ========== КАРТЫ ДОМИНО ========== */
+.domino-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    min-width: 80px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.domino-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.domino-card.playable {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    cursor: pointer;
+}
+
+.domino-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.domino-card.disabled:hover {
+    transform: none;
+}
+
+.domino-values {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.domino-separator {
+    font-size: 20px;
+    margin: 0 5px;
+}
+
+/* ========== РУКА ИГРОКА ========== */
+.player-hand h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.hand-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* ========== ИНФОРМАЦИЯ О ПРОТИВНИКЕ ========== */
+.opponent-info {
+    text-align: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.opponent-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.cards-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.your-info {
+    margin-top: 20px;
+}
+
+.your-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* ========== КНОПКИ ========== */
+.game-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    padding: 12px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-leave {
+    background: #ff5722;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* ========== СТАТУС ИГРЫ ========== */
+.game-status {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #f5f5f5;
+}
+
+.turn-indicator {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/* ========== ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ ========== */
+.hidden {
+    display: none;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+/* ========== АДАПТИВНОСТЬ ========== */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .domino-card {
+        min-width: 60px;
+        padding: 10px;
+    }
+    
+    .domino-values {
+        font-size: 18px;
+    }
+    
+    .big-code {
+        font-size: 32px;
+        letter-spacing: 5px;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .code-input-group {
+        flex-direction: column;
+    }
+    
+    .btn-primary, .btn-secondary, .btn-danger {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .settings-mini select {
+        padding: 10px;
+    }
+}
+
+/* ========== АНИМАЦИИ ========== */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.playable {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.waiting-game {
+    animation: slideIn 0.3s ease-out;
+}
