@@ -15,93 +15,227 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
-// Хранилище игр
-const games = new Map();
+// Хранилище активных игр
+const activeGames = new Map();
+
+// Генерация уникального ID игры
+function generateGameId() {
+    return 'game_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
 
 io.on('connection', (socket) => {
-    console.log('Новый игрок подключён:', socket.id);
+    console.log('✅ Новый игрок подключился:', socket.id);
     
+    // Отправляем список игр новому игроку
+    sendGamesList(socket);
+    
+    // Создание игры
     socket.on('createGame', (data) => {
         const gameId = generateGameId();
-        const game = {
-            id: gameId,
-            host: data.user,
-            players: [data.user],
+        const gameData = {
+            gameId: gameId,
+            hostId: data.user.id,
+            hostName: data.user.first_name,
+            players: [{
+                id: data.user.id,
+                name: data.user.first_name,
+                socketId: socket.id,
+                isHost: true
+            }],
+            playersCount: 1,
+            maxPlayers: 2,
             settings: data.settings,
             status: 'waiting',
-            gameState: null
+            createdAt: Date.now()
         };
         
-        games.set(gameId, game);
+        activeGames.set(gameId, gameData);
         socket.join(gameId);
-        socket.emit('gameCreated', { gameId, game });
         
-        console.log(`Игра ${gameId} создана пользователем ${data.user.first_name}`);
-    });
-    
-    socket.on('joinGame', ({ gameId, user }) => {
-        const game = games.get(gameId);
+        console.log(`🎲 Игра создана: ${gameId} от ${data.user.first_name}`);
         
-        if (game && game.players.length < 2) {
-            game.players.push(user);
-            game.status = 'starting';
-            
-            socket.join(gameId);
-            io.to(gameId).emit('playerJoined', { players: game.players });
-            
-            // Запускаем игру
-            startGame(gameId);
-        } else {
-            socket.emit('joinError', { message: 'Игра не найдена или заполнена' });
-        }
+        socket.emit('gameCreated', {
+            gameId: gameId,
+            gameData: gameData
+        });
+        
+        // Рассылаем обновлённый список всем
+        broadcastGamesList();
     });
     
-    socket.on('makeMove', ({ gameId, move }) => {
-        const game = games.get(gameId);
-        if (game && game.gameState && game.gameState.currentTurn === move.playerId) {
-            // Обновляем состояние игры
-            updateGameState(game, move);
-            io.to(gameId).emit('gameUpdate', { gameState: game.gameState });
+    // Присоединение к игре
+    socket.on('joinGame', (data) => {
+        const game = activeGames.get(data.gameId);
+        
+        if (!game) {
+            socket.emit('joinError', { message: 'Игра не найдена' });
+            return;
         }
+        
+        if (game.playersCount >= game.maxPlayers) {
+            socket.emit('joinError', { message: 'Игра уже заполнена' });
+            return;
+        }
+        
+        if (game.players.some(p => p.id === data.user.id)) {
+            socket.emit('joinError', { message: 'Вы уже в этой игре' });
+            return;
+        }
+        
+        // Добавляем игрока
+        game.players.push({
+            id: data.user.id,
+            name: data.user.first_name,
+            socketId: socket.id,
+            isHost: false
+        });
+        game.playersCount = 2;
+        game.status = 'starting';
+        
+        activeGames.set(data.gameId, game);
+        socket.join(data.gameId);
+        
+        console.log(`👥 Игрок ${data.user.first_name} присоединился к игре ${data.gameId}`);
+        
+        // Уведомляем обоих игроков
+        io.to(data.gameId).emit('playerJoined', {
+            gameId: data.gameId,
+            players: game.players,
+            settings: game.settings
+        });
+        
+        // Удаляем игру из активных (она началась)
+        setTimeout(() => {
+            activeGames.delete(data.gameId);
+            broadcastGamesList();
+        }, 1000);
+        
+        socket.emit('joinSuccess', {
+            gameId: data.gameId,
+            players: game.players,
+            settings: game.settings
+        });
+        
+        // Рассылаем обновлённый список
+        broadcastGamesList();
     });
     
+    // Ход в игре
+    socket.on('makeMove', (data) => {
+        io.to(data.gameId).emit('moveMade', {
+            playerId: data.playerId,
+            move: data.move,
+            gameState: data.gameState
+        });
+    });
+    
+    // Пропуск хода
+    socket.on('passMove', (data) => {
+        io.to(data.gameId).emit('movePassed', {
+            playerId: data.playerId,
+            gameState: data.gameState
+        });
+    });
+    
+    // Обновление состояния игры
+    socket.on('updateGame', (data) => {
+        io.to(data.gameId).emit('gameUpdated', {
+            gameState: data.gameState,
+            currentTurn: data.currentTurn
+        });
+    });
+    
+    // Игрок вышел
+    socket.on('leaveGame', (data) => {
+        const game = activeGames.get(data.gameId);
+        if (game) {
+            game.players = game.players.filter(p => p.socketId !== socket.id);
+            game.playersCount--;
+            
+            if (game.playersCount === 0) {
+                activeGames.delete(data.gameId);
+                console.log(`🗑️ Игра ${data.gameId} удалена (нет игроков)`);
+            } else {
+                activeGames.set(data.gameId, game);
+                io.to(data.gameId).emit('playerLeft', {
+                    players: game.players
+                });
+            }
+            broadcastGamesList();
+        }
+        socket.leave(data.gameId);
+    });
+    
+    // Отключение
     socket.on('disconnect', () => {
-        console.log('Игрок отключён:', socket.id);
-        // Обработка выхода из игры
+        console.log('❌ Игрок отключился:', socket.id);
+        
+        // Удаляем игрока из всех игр
+        for (const [gameId, game] of activeGames.entries()) {
+            const playerIndex = game.players.findIndex(p => p.socketId === socket.id);
+            if (playerIndex !== -1) {
+                game.players.splice(playerIndex, 1);
+                game.playersCount--;
+                
+                if (game.playersCount === 0) {
+                    activeGames.delete(gameId);
+                    console.log(`🗑️ Игра ${gameId} удалена`);
+                } else {
+                    activeGames.set(gameId, game);
+                    io.to(gameId).emit('playerLeft', {
+                        players: game.players
+                    });
+                }
+                broadcastGamesList();
+                break;
+            }
+        }
     });
 });
 
-function generateGameId() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-function startGame(gameId) {
-    const game = games.get(gameId);
-    if (!game) return;
+// Отправка списка игр
+function sendGamesList(socket) {
+    const games = Array.from(activeGames.values())
+        .filter(game => game.status === 'waiting' && game.playersCount < game.maxPlayers)
+        .map(game => ({
+            gameId: game.gameId,
+            hostName: game.hostName,
+            playersCount: game.playersCount,
+            maxPlayers: game.maxPlayers,
+            settings: game.settings,
+            createdAt: game.createdAt
+        }));
     
-    // Инициализация игры в домино
-    const gameState = initializeDominoGame(game.players, game.settings);
-    game.gameState = gameState;
-    game.status = 'playing';
-    games.set(gameId, game);
+    socket.emit('gamesList', { games });
+}
+
+// Рассылка списка всем
+function broadcastGamesList() {
+    const games = Array.from(activeGames.values())
+        .filter(game => game.status === 'waiting' && game.playersCount < game.maxPlayers)
+        .map(game => ({
+            gameId: game.gameId,
+            hostName: game.hostName,
+            playersCount: game.playersCount,
+            maxPlayers: game.maxPlayers,
+            settings: game.settings,
+            createdAt: game.createdAt
+        }));
     
-    io.to(gameId).emit('gameStarted', { gameState });
+    io.emit('gamesList', { games });
 }
 
-function initializeDominoGame(players, settings) {
-    // Логика создания колоды и раздачи карт
-    return {
-        players: players.map(p => ({ id: p.id, name: p.first_name, hand: [] })),
-        table: [],
-        currentTurn: players[0].id,
-        status: 'playing'
-    };
-}
-
-function updateGameState(game, move) {
-    // Обновление состояния игры после хода
-    console.log(`Ход в игре ${game.id}:`, move);
-}
+// Периодическая очистка старых игр (каждые 30 секунд)
+setInterval(() => {
+    const now = Date.now();
+    for (const [gameId, game] of activeGames.entries()) {
+        if (game.status === 'waiting' && (now - game.createdAt) > 600000) { // 10 минут
+            activeGames.delete(gameId);
+            console.log(`🗑️ Удалена старая игра: ${gameId}`);
+        }
+    }
+    broadcastGamesList();
+}, 30000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
