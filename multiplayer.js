@@ -30,7 +30,7 @@ function initMultiplayer() {
 // Подключение к серверу
 function connectToServer() {
     // ⚠️ ЗАМЕНИ НА СВОЙ URL ОТ RENDER
-    const SERVER_URL = 'https://domino-server.onrender.com';
+    const SERVER_URL = 'https://dominogame.onrender.com';
     
     showLoading('Подключение к серверу...');
     
