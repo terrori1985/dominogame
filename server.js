@@ -5,24 +5,32 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+// Настройка Socket.IO с правильными параметрами для Telegram Mini App
 const io = new Server(server, {
-  cors: { 
+  cors: {
     origin: '*',
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST'],
+    credentials: false
   },
   transports: ['websocket', 'polling'],
   allowEIO3: true,
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  upgradeTimeout: 10000,
+  allowUpgrades: true,
+  cookie: false
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Middleware
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Game state
 const tables = new Map();
 const players = new Map();
 
+// Game logic
 function createDominoSet() {
   const tiles = [];
   for (let i = 0; i <= 6; i++) {
@@ -43,7 +51,8 @@ function shuffle(arr) {
 }
 
 function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
-  const tableId = 'T' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4);
+  const tableId = 'T' + Date.now().toString(36).toUpperCase() + 
+                  Math.random().toString(36).substr(2, 4).toUpperCase();
   const table = {
     id: tableId,
     hostId,
@@ -61,12 +70,14 @@ function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
     createdAt: Date.now()
   };
   tables.set(tableId, table);
+  console.log(`Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
 function dealTiles(table) {
   const allTiles = shuffle(createDominoSet());
   const perPlayer = table.players.length <= 2 ? 7 : 6;
+  
   table.players.forEach((p, i) => {
     p.hand = allTiles.splice(0, perPlayer);
     p.handCount = p.hand.length;
@@ -77,6 +88,7 @@ function dealTiles(table) {
   table.passCount = 0;
   table.currentTurn = 0;
 
+  // Find player with highest double to start
   let startIdx = 0;
   let highestDouble = -1;
   table.players.forEach((p, i) => {
@@ -88,6 +100,7 @@ function dealTiles(table) {
     });
   });
   table.currentTurn = startIdx;
+  console.log(`Game started at table ${table.id}, first turn: player ${startIdx}`);
 }
 
 function getPublicTable(table) {
@@ -104,6 +117,8 @@ function getPublicTable(table) {
 
 function getTableState(table, playerId) {
   const player = table.players.find(p => p.id === playerId);
+  if (!player) return null;
+  
   return {
     id: table.id,
     status: table.status,
@@ -120,7 +135,7 @@ function getTableState(table, playerId) {
       score: table.scores[p.id] || 0,
       isActive: p.isActive
     })),
-    myHand: player ? player.hand : [],
+    myHand: player.hand || [],
     scores: table.scores,
     hostId: table.hostId
   };
@@ -144,11 +159,13 @@ function playTile(table, playerId, tileIdx, side) {
 
   if (!canPlayTile(tile, table.boardEnds)) return { error: 'Cannot play this tile' };
 
+  // Remove tile from hand
   player.hand.splice(tileIdx, 1);
   player.handCount = player.hand.length;
 
+  // Place on board
   if (!table.boardEnds) {
-    table.board.push({ tile, side: 'center', rotation: 0 });
+    table.board.push({ tile, side: 'center' });
     table.boardEnds = { left: tile[0], right: tile[1] };
   } else {
     let placedTile = [...tile];
@@ -158,6 +175,8 @@ function playTile(table, playerId, tileIdx, side) {
       } else if (tile[0] === table.boardEnds.left) {
         placedTile = [tile[1], tile[0]];
         table.boardEnds.left = tile[1];
+      } else {
+        return { error: 'Tile does not match left end' };
       }
       table.board.unshift({ tile: placedTile, side: 'left' });
     } else {
@@ -166,6 +185,8 @@ function playTile(table, playerId, tileIdx, side) {
       } else if (tile[1] === table.boardEnds.right) {
         placedTile = [tile[1], tile[0]];
         table.boardEnds.right = tile[0];
+      } else {
+        return { error: 'Tile does not match right end' };
       }
       table.board.push({ tile: placedTile, side: 'right' });
     }
@@ -173,10 +194,13 @@ function playTile(table, playerId, tileIdx, side) {
 
   table.passCount = 0;
 
+  // Check win
   if (player.hand.length === 0) {
+    console.log(`Player ${player.name} won the game!`);
     return { win: true, winnerId: playerId };
   }
 
+  // Next turn
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
   return { success: true };
 }
@@ -184,18 +208,22 @@ function playTile(table, playerId, tileIdx, side) {
 function drawFromBoneyard(table, playerId) {
   const player = table.players.find(p => p.id === playerId);
   if (!player) return { error: 'Player not found' };
+  
   const pIdx = table.players.indexOf(player);
   if (pIdx !== table.currentTurn) return { error: 'Not your turn' };
 
   if (table.boneyard.length === 0) return { error: 'Boneyard empty' };
 
+  // Check if player can play a tile first
   if (table.boardEnds && player.hand.some(t => canPlayTile(t, table.boardEnds))) {
-    return { error: 'You can play a tile' };
+    return { error: 'You have a playable tile' };
   }
 
-  const drawn = table.boneyard.splice(0, 1)[0];
+  const drawn = table.boneyard.shift();
   player.hand.push(drawn);
   player.handCount = player.hand.length;
+  
+  console.log(`Player ${player.name} drew tile [${drawn[0]}|${drawn[1]}]`);
 
   return { success: true, drawnTile: drawn };
 }
@@ -203,16 +231,21 @@ function drawFromBoneyard(table, playerId) {
 function passTurn(table, playerId) {
   const player = table.players.find(p => p.id === playerId);
   if (!player) return { error: 'Player not found' };
+  
   const pIdx = table.players.indexOf(player);
   if (pIdx !== table.currentTurn) return { error: 'Not your turn' };
 
+  // Can only pass if boneyard empty and can't play
   if (table.boneyard.length > 0) return { error: 'Draw from boneyard first' };
-  if (player.hand.some(t => canPlayTile(t, table.boardEnds))) return { error: 'You can play' };
+  if (player.hand.some(t => canPlayTile(t, table.boardEnds))) return { error: 'You have a playable tile' };
 
   table.passCount++;
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
+  
+  console.log(`Player ${player.name} passed. Pass count: ${table.passCount}`);
 
   if (table.passCount >= table.players.length) {
+    console.log(`Game blocked at table ${table.id}`);
     return { blocked: true };
   }
   return { success: true };
@@ -220,16 +253,20 @@ function passTurn(table, playerId) {
 
 function calculateScores(table, winnerId) {
   const scores = {};
+  let totalPips = 0;
+  
   table.players.forEach(p => {
     const pips = p.hand.reduce((sum, t) => sum + t[0] + t[1], 0);
     scores[p.id] = pips;
+    totalPips += pips;
     if (!table.scores[p.id]) table.scores[p.id] = 0;
   });
 
   if (winnerId) {
-    const totalPips = Object.values(scores).reduce((a, b) => a + b, 0);
     table.scores[winnerId] = (table.scores[winnerId] || 0) + totalPips;
+    return { winner: winnerId, scores };
   } else {
+    // Blocked game - player with fewest pips wins
     let minPips = Infinity;
     let winner = null;
     table.players.forEach(p => {
@@ -238,21 +275,25 @@ function calculateScores(table, winnerId) {
         winner = p.id;
       }
     });
-    const totalPips = Object.values(scores).reduce((a, b) => a + b, 0);
     if (winner) table.scores[winner] = (table.scores[winner] || 0) + totalPips;
     return { winner, scores };
   }
-  return { winner: winnerId, scores };
 }
 
-// Socket.IO
+// Socket.IO event handlers
 io.on('connection', (socket) => {
-  console.log('Connected:', socket.id);
+  console.log(`🔌 Client connected: ${socket.id}`);
 
   socket.on('register', ({ name, avatar, telegramId }) => {
-    players.set(socket.id, { id: socket.id, name, avatar, telegramId });
+    const player = { 
+      id: socket.id, 
+      name: name || 'Игрок', 
+      avatar: avatar || '🎲', 
+      telegramId: telegramId || null 
+    };
+    players.set(socket.id, player);
     socket.emit('registered', { id: socket.id });
-    console.log('Registered:', name, socket.id);
+    console.log(`📝 Player registered: ${name} (${socket.id})`);
   });
 
   socket.on('getTables', () => {
@@ -260,92 +301,150 @@ io.on('connection', (socket) => {
       .filter(t => !t.isPrivate && t.status === 'waiting')
       .map(getPublicTable);
     socket.emit('tablesList', publicTables);
+    console.log(`📋 Sent ${publicTables.length} tables to ${socket.id}`);
   });
 
   socket.on('createTable', ({ maxPlayers, isPrivate }) => {
     const player = players.get(socket.id);
-    if (!player) return socket.emit('error', 'Not registered');
+    if (!player) {
+      socket.emit('error', 'Not registered');
+      return;
+    }
 
     const table = createTable(socket.id, player.name, maxPlayers || 4, isPrivate || false);
-    table.players.push({ ...player, hand: [], handCount: 0, isActive: true });
+    table.players.push({ 
+      ...player, 
+      hand: [], 
+      handCount: 0, 
+      isActive: true 
+    });
     table.scores[socket.id] = 0;
 
     socket.join(table.id);
     socket.emit('tableCreated', { tableId: table.id });
     socket.emit('tableState', getTableState(table, socket.id));
 
-    io.emit('tablesUpdate', Array.from(tables.values())
+    // Broadcast updated tables list to all clients
+    const publicTables = Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
-      .map(getPublicTable));
+      .map(getPublicTable);
+    io.emit('tablesUpdate', publicTables);
     
-    console.log('Table created:', table.id, 'by', player.name);
+    console.log(`✨ Table created: ${table.id} by ${player.name}`);
   });
 
   socket.on('joinTable', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
-    if (table.status !== 'waiting') return socket.emit('error', 'Game already started');
-    if (table.players.length >= table.maxPlayers) return socket.emit('error', 'Table full');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
+    if (table.status !== 'waiting') {
+      socket.emit('error', 'Game already started');
+      return;
+    }
+    if (table.players.length >= table.maxPlayers) {
+      socket.emit('error', 'Table full');
+      return;
+    }
 
     const player = players.get(socket.id);
-    if (!player) return socket.emit('error', 'Not registered');
+    if (!player) {
+      socket.emit('error', 'Not registered');
+      return;
+    }
 
+    // Check if already in table
     if (table.players.find(p => p.id === socket.id)) {
       socket.join(tableId);
       socket.emit('tableState', getTableState(table, socket.id));
       return;
     }
 
-    table.players.push({ ...player, hand: [], handCount: 0, isActive: true });
+    table.players.push({ 
+      ...player, 
+      hand: [], 
+      handCount: 0, 
+      isActive: true 
+    });
     table.scores[socket.id] = 0;
     socket.join(tableId);
 
-    io.to(tableId).emit('playerJoined', { player: { id: player.id, name: player.name, avatar: player.avatar } });
+    // Notify everyone in the table
+    io.to(tableId).emit('playerJoined', { 
+      player: { id: player.id, name: player.name, avatar: player.avatar } 
+    });
     io.to(tableId).emit('tableState', getTableState(table, socket.id));
 
-    io.emit('tablesUpdate', Array.from(tables.values())
+    // Update global tables list
+    const publicTables = Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
-      .map(getPublicTable));
+      .map(getPublicTable);
+    io.emit('tablesUpdate', publicTables);
     
-    console.log('Player joined:', player.name, 'to table', tableId);
+    console.log(`👤 Player ${player.name} joined table ${tableId}`);
   });
 
   socket.on('startGame', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
-    if (table.hostId !== socket.id) return socket.emit('error', 'Not host');
-    if (table.players.length < 2) return socket.emit('error', 'Need at least 2 players');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
+    if (table.hostId !== socket.id) {
+      socket.emit('error', 'Not host');
+      return;
+    }
+    if (table.players.length < 2) {
+      socket.emit('error', 'Need at least 2 players');
+      return;
+    }
 
     table.status = 'playing';
     dealTiles(table);
 
+    // Send game started event to each player with their hand
     table.players.forEach(p => {
-      const pSocket = io.sockets.sockets.get(p.id);
-      if (pSocket) pSocket.emit('gameStarted', getTableState(table, p.id));
+      const playerSocket = io.sockets.sockets.get(p.id);
+      if (playerSocket) {
+        playerSocket.emit('gameStarted', getTableState(table, p.id));
+      }
     });
 
-    io.emit('tablesUpdate', Array.from(tables.values())
+    // Update tables list for lobby
+    const publicTables = Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
-      .map(getPublicTable));
+      .map(getPublicTable);
+    io.emit('tablesUpdate', publicTables);
     
-    console.log('Game started at table', tableId);
+    console.log(`🎮 Game started at table ${tableId}`);
   });
 
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = playTile(table, socket.id, tileIdx, side || 'right');
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
     if (result.win) {
       const { winner, scores } = calculateScores(table, socket.id);
       table.status = 'finished';
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino' });
+      console.log(`🏆 Game over at table ${tableId}, winner: ${winner}`);
     } else {
+      // Update all players in the table
       table.players.forEach(p => {
-        const pSocket = io.sockets.sockets.get(p.id);
-        if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
+        const playerSocket = io.sockets.sockets.get(p.id);
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
       });
       io.to(tableId).emit('tilePlayed', {
         playerId: socket.id,
@@ -356,33 +455,52 @@ io.on('connection', (socket) => {
 
   socket.on('drawTile', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = drawFromBoneyard(table, socket.id);
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
+    // Update all players
     table.players.forEach(p => {
-      const pSocket = io.sockets.sockets.get(p.id);
-      if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
+      const playerSocket = io.sockets.sockets.get(p.id);
+      if (playerSocket) {
+        playerSocket.emit('tableState', getTableState(table, p.id));
+      }
     });
     socket.emit('tileDrawn', { tile: result.drawnTile });
   });
 
   socket.on('passTurn', ({ tableId }) => {
     const table = tables.get(tableId);
-    if (!table) return socket.emit('error', 'Table not found');
+    if (!table) {
+      socket.emit('error', 'Table not found');
+      return;
+    }
 
     const result = passTurn(table, socket.id);
-    if (result.error) return socket.emit('error', result.error);
+    if (result.error) {
+      socket.emit('error', result.error);
+      return;
+    }
 
     if (result.blocked) {
       const { winner, scores } = calculateScores(table, null);
       table.status = 'finished';
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked' });
+      console.log(`🚫 Game blocked at table ${tableId}, winner: ${winner}`);
     } else {
+      // Update all players
       table.players.forEach(p => {
-        const pSocket = io.sockets.sockets.get(p.id);
-        if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
+        const playerSocket = io.sockets.sockets.get(p.id);
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
       });
     }
   });
@@ -390,7 +508,10 @@ io.on('connection', (socket) => {
   socket.on('playAgain', ({ tableId }) => {
     const table = tables.get(tableId);
     if (!table) return;
-    if (table.hostId !== socket.id) return socket.emit('error', 'Not host');
+    if (table.hostId !== socket.id) {
+      socket.emit('error', 'Not host');
+      return;
+    }
 
     table.status = 'playing';
     table.board = [];
@@ -398,9 +519,13 @@ io.on('connection', (socket) => {
     dealTiles(table);
 
     table.players.forEach(p => {
-      const pSocket = io.sockets.sockets.get(p.id);
-      if (pSocket) pSocket.emit('gameStarted', getTableState(table, p.id));
+      const playerSocket = io.sockets.sockets.get(p.id);
+      if (playerSocket) {
+        playerSocket.emit('gameStarted', getTableState(table, p.id));
+      }
     });
+    
+    console.log(`🔄 Rematch started at table ${tableId}`);
   });
 
   socket.on('leaveTable', ({ tableId }) => {
@@ -408,53 +533,93 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Disconnected:', socket.id);
-    players.forEach((p, id) => {
-      if (id === socket.id) {
-        tables.forEach((table, tableId) => {
-          if (table.players.find(p => p.id === socket.id)) {
-            handleLeave(socket, tableId);
-          }
-        });
-        players.delete(id);
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+    
+    // Remove player from any table they were in
+    tables.forEach((table, tableId) => {
+      if (table.players.some(p => p.id === socket.id)) {
+        handleLeave(socket, tableId);
       }
     });
+    
+    players.delete(socket.id);
   });
 
   function handleLeave(socket, tableId) {
     const table = tables.get(tableId);
     if (!table) return;
 
+    const leavingPlayer = table.players.find(p => p.id === socket.id);
+    if (!leavingPlayer) return;
+
     table.players = table.players.filter(p => p.id !== socket.id);
     socket.leave(tableId);
 
     if (table.players.length === 0) {
       tables.delete(tableId);
-      console.log('Table deleted:', tableId);
+      console.log(`🗑️ Table ${tableId} deleted (empty)`);
     } else {
+      // If host left, assign new host
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
         table.hostName = table.players[0].name;
+        console.log(`👑 New host for table ${tableId}: ${table.players[0].name}`);
       }
+      
+      // If game was in progress, update state
       if (table.status === 'playing') {
         if (table.currentTurn >= table.players.length) {
           table.currentTurn = 0;
         }
-        table.players.forEach(p => {
-          const pSocket = io.sockets.sockets.get(p.id);
-          if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
-        });
-        io.to(tableId).emit('playerLeft', { playerId: socket.id });
+        
+        // Check if game can continue (need at least 2 players)
+        if (table.players.length < 2) {
+          table.status = 'waiting';
+          console.log(`⏸️ Table ${tableId} returned to waiting (less than 2 players)`);
+        }
       }
+      
+      // Update remaining players
+      table.players.forEach(p => {
+        const playerSocket = io.sockets.sockets.get(p.id);
+        if (playerSocket) {
+          playerSocket.emit('tableState', getTableState(table, p.id));
+        }
+      });
+      io.to(tableId).emit('playerLeft', { playerId: socket.id });
     }
 
-    io.emit('tablesUpdate', Array.from(tables.values())
+    // Update global tables list
+    const publicTables = Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
-      .map(getPublicTable));
+      .map(getPublicTable);
+    io.emit('tablesUpdate', publicTables);
+    
+    console.log(`👋 Player ${leavingPlayer.name} left table ${tableId}`);
   }
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    tables: tables.size,
+    players: players.size,
+    uptime: process.uptime()
+  });
+});
+
+// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Domino server running on port ${PORT}`);
+  console.log(`
+╔═══════════════════════════════════════════════════╗
+║                                                   ║
+║      🎲 DOMINO SERVER STARTED 🎲                  ║
+║                                                   ║
+║   Port: ${PORT}                                      ║
+║   Environment: ${process.env.NODE_ENV || 'development'}     ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
+  `);
 });
