@@ -6,8 +6,14 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' },
-  transports: ['websocket', 'polling']
+  cors: { 
+    origin: '*',
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -37,7 +43,7 @@ function shuffle(arr) {
 }
 
 function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
-  const tableId = 'T' + Date.now().toString(36).toUpperCase();
+  const tableId = 'T' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4);
   const table = {
     id: tableId,
     hostId,
@@ -71,7 +77,6 @@ function dealTiles(table) {
   table.passCount = 0;
   table.currentTurn = 0;
 
-  // Find who has [6,6] or highest double
   let startIdx = 0;
   let highestDouble = -1;
   table.players.forEach((p, i) => {
@@ -139,11 +144,9 @@ function playTile(table, playerId, tileIdx, side) {
 
   if (!canPlayTile(tile, table.boardEnds)) return { error: 'Cannot play this tile' };
 
-  // Remove from hand
   player.hand.splice(tileIdx, 1);
   player.handCount = player.hand.length;
 
-  // Place on board
   if (!table.boardEnds) {
     table.board.push({ tile, side: 'center', rotation: 0 });
     table.boardEnds = { left: tile[0], right: tile[1] };
@@ -170,12 +173,10 @@ function playTile(table, playerId, tileIdx, side) {
 
   table.passCount = 0;
 
-  // Check win
   if (player.hand.length === 0) {
     return { win: true, winnerId: playerId };
   }
 
-  // Next turn
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
   return { success: true };
 }
@@ -188,7 +189,6 @@ function drawFromBoneyard(table, playerId) {
 
   if (table.boneyard.length === 0) return { error: 'Boneyard empty' };
 
-  // Check if can already play
   if (table.boardEnds && player.hand.some(t => canPlayTile(t, table.boardEnds))) {
     return { error: 'You can play a tile' };
   }
@@ -206,7 +206,6 @@ function passTurn(table, playerId) {
   const pIdx = table.players.indexOf(player);
   if (pIdx !== table.currentTurn) return { error: 'Not your turn' };
 
-  // Can only pass if boneyard empty and can't play
   if (table.boneyard.length > 0) return { error: 'Draw from boneyard first' };
   if (player.hand.some(t => canPlayTile(t, table.boardEnds))) return { error: 'You can play' };
 
@@ -214,7 +213,6 @@ function passTurn(table, playerId) {
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
 
   if (table.passCount >= table.players.length) {
-    // Blocked game - count pips
     return { blocked: true };
   }
   return { success: true };
@@ -232,7 +230,6 @@ function calculateScores(table, winnerId) {
     const totalPips = Object.values(scores).reduce((a, b) => a + b, 0);
     table.scores[winnerId] = (table.scores[winnerId] || 0) + totalPips;
   } else {
-    // Blocked - lowest pip count wins
     let minPips = Infinity;
     let winner = null;
     table.players.forEach(p => {
@@ -255,6 +252,7 @@ io.on('connection', (socket) => {
   socket.on('register', ({ name, avatar, telegramId }) => {
     players.set(socket.id, { id: socket.id, name, avatar, telegramId });
     socket.emit('registered', { id: socket.id });
+    console.log('Registered:', name, socket.id);
   });
 
   socket.on('getTables', () => {
@@ -279,6 +277,8 @@ io.on('connection', (socket) => {
     io.emit('tablesUpdate', Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
       .map(getPublicTable));
+    
+    console.log('Table created:', table.id, 'by', player.name);
   });
 
   socket.on('joinTable', ({ tableId }) => {
@@ -306,6 +306,8 @@ io.on('connection', (socket) => {
     io.emit('tablesUpdate', Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
       .map(getPublicTable));
+    
+    console.log('Player joined:', player.name, 'to table', tableId);
   });
 
   socket.on('startGame', ({ tableId }) => {
@@ -318,13 +320,15 @@ io.on('connection', (socket) => {
     dealTiles(table);
 
     table.players.forEach(p => {
-      const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+      const pSocket = io.sockets.sockets.get(p.id);
       if (pSocket) pSocket.emit('gameStarted', getTableState(table, p.id));
     });
 
     io.emit('tablesUpdate', Array.from(tables.values())
       .filter(t => !t.isPrivate && t.status === 'waiting')
       .map(getPublicTable));
+    
+    console.log('Game started at table', tableId);
   });
 
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
@@ -340,7 +344,7 @@ io.on('connection', (socket) => {
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino' });
     } else {
       table.players.forEach(p => {
-        const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+        const pSocket = io.sockets.sockets.get(p.id);
         if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
       });
       io.to(tableId).emit('tilePlayed', {
@@ -358,7 +362,7 @@ io.on('connection', (socket) => {
     if (result.error) return socket.emit('error', result.error);
 
     table.players.forEach(p => {
-      const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+      const pSocket = io.sockets.sockets.get(p.id);
       if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
     });
     socket.emit('tileDrawn', { tile: result.drawnTile });
@@ -377,7 +381,7 @@ io.on('connection', (socket) => {
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked' });
     } else {
       table.players.forEach(p => {
-        const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+        const pSocket = io.sockets.sockets.get(p.id);
         if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
       });
     }
@@ -394,7 +398,7 @@ io.on('connection', (socket) => {
     dealTiles(table);
 
     table.players.forEach(p => {
-      const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+      const pSocket = io.sockets.sockets.get(p.id);
       if (pSocket) pSocket.emit('gameStarted', getTableState(table, p.id));
     });
   });
@@ -404,6 +408,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    console.log('Disconnected:', socket.id);
     players.forEach((p, id) => {
       if (id === socket.id) {
         tables.forEach((table, tableId) => {
@@ -425,6 +430,7 @@ io.on('connection', (socket) => {
 
     if (table.players.length === 0) {
       tables.delete(tableId);
+      console.log('Table deleted:', tableId);
     } else {
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
@@ -435,7 +441,7 @@ io.on('connection', (socket) => {
           table.currentTurn = 0;
         }
         table.players.forEach(p => {
-          const pSocket = [...io.sockets.sockets.values()].find(s => s.id === p.id);
+          const pSocket = io.sockets.sockets.get(p.id);
           if (pSocket) pSocket.emit('tableState', getTableState(table, p.id));
         });
         io.to(tableId).emit('playerLeft', { playerId: socket.id });
@@ -449,6 +455,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Domino server running on port ${PORT}`);
 });
