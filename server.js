@@ -6,31 +6,46 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Настройка Socket.IO с правильными параметрами для Telegram Mini App
+// Настройка Socket.IO
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST'],
-    credentials: false
+    methods: ['GET', 'POST']
   },
   transports: ['websocket', 'polling'],
   allowEIO3: true,
   pingTimeout: 60000,
-  pingInterval: 25000,
-  upgradeTimeout: 10000,
-  allowUpgrades: true,
-  cookie: false
+  pingInterval: 25000
 });
 
 // Middleware
 app.use(express.json());
+// ВАЖНО: указываем правильную директорию для статических файлов
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Для отладки - выводим путь к статическим файлам
+console.log('Static files served from:', path.join(__dirname, 'public'));
+
+// Главный маршрут - отдаем index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    tables: tables.size,
+    players: players.size,
+    uptime: process.uptime(),
+    staticPath: path.join(__dirname, 'public')
+  });
+});
 
 // Game state
 const tables = new Map();
 const players = new Map();
 
-// Game logic
 function createDominoSet() {
   const tiles = [];
   for (let i = 0; i <= 6; i++) {
@@ -58,7 +73,7 @@ function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
     hostId,
     hostName,
     maxPlayers,
-    isPrivate,
+    isPrivate: false, // Все столы публичные для тестирования
     players: [],
     status: 'waiting',
     board: [],
@@ -70,7 +85,7 @@ function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
     createdAt: Date.now()
   };
   tables.set(tableId, table);
-  console.log(`Table created: ${tableId} by ${hostName}`);
+  console.log(`✅ Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -88,7 +103,6 @@ function dealTiles(table) {
   table.passCount = 0;
   table.currentTurn = 0;
 
-  // Find player with highest double to start
   let startIdx = 0;
   let highestDouble = -1;
   table.players.forEach((p, i) => {
@@ -100,7 +114,6 @@ function dealTiles(table) {
     });
   });
   table.currentTurn = startIdx;
-  console.log(`Game started at table ${table.id}, first turn: player ${startIdx}`);
 }
 
 function getPublicTable(table) {
@@ -159,11 +172,9 @@ function playTile(table, playerId, tileIdx, side) {
 
   if (!canPlayTile(tile, table.boardEnds)) return { error: 'Cannot play this tile' };
 
-  // Remove tile from hand
   player.hand.splice(tileIdx, 1);
   player.handCount = player.hand.length;
 
-  // Place on board
   if (!table.boardEnds) {
     table.board.push({ tile, side: 'center' });
     table.boardEnds = { left: tile[0], right: tile[1] };
@@ -194,13 +205,10 @@ function playTile(table, playerId, tileIdx, side) {
 
   table.passCount = 0;
 
-  // Check win
   if (player.hand.length === 0) {
-    console.log(`Player ${player.name} won the game!`);
     return { win: true, winnerId: playerId };
   }
 
-  // Next turn
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
   return { success: true };
 }
@@ -214,7 +222,6 @@ function drawFromBoneyard(table, playerId) {
 
   if (table.boneyard.length === 0) return { error: 'Boneyard empty' };
 
-  // Check if player can play a tile first
   if (table.boardEnds && player.hand.some(t => canPlayTile(t, table.boardEnds))) {
     return { error: 'You have a playable tile' };
   }
@@ -222,8 +229,6 @@ function drawFromBoneyard(table, playerId) {
   const drawn = table.boneyard.shift();
   player.hand.push(drawn);
   player.handCount = player.hand.length;
-  
-  console.log(`Player ${player.name} drew tile [${drawn[0]}|${drawn[1]}]`);
 
   return { success: true, drawnTile: drawn };
 }
@@ -235,17 +240,13 @@ function passTurn(table, playerId) {
   const pIdx = table.players.indexOf(player);
   if (pIdx !== table.currentTurn) return { error: 'Not your turn' };
 
-  // Can only pass if boneyard empty and can't play
   if (table.boneyard.length > 0) return { error: 'Draw from boneyard first' };
   if (player.hand.some(t => canPlayTile(t, table.boardEnds))) return { error: 'You have a playable tile' };
 
   table.passCount++;
   table.currentTurn = (table.currentTurn + 1) % table.players.length;
-  
-  console.log(`Player ${player.name} passed. Pass count: ${table.passCount}`);
 
   if (table.passCount >= table.players.length) {
-    console.log(`Game blocked at table ${table.id}`);
     return { blocked: true };
   }
   return { success: true };
@@ -266,7 +267,6 @@ function calculateScores(table, winnerId) {
     table.scores[winnerId] = (table.scores[winnerId] || 0) + totalPips;
     return { winner: winnerId, scores };
   } else {
-    // Blocked game - player with fewest pips wins
     let minPips = Infinity;
     let winner = null;
     table.players.forEach(p => {
@@ -280,7 +280,7 @@ function calculateScores(table, winnerId) {
   }
 }
 
-// Socket.IO event handlers
+// Socket.IO
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
 
@@ -298,7 +298,7 @@ io.on('connection', (socket) => {
 
   socket.on('getTables', () => {
     const publicTables = Array.from(tables.values())
-      .filter(t => !t.isPrivate && t.status === 'waiting')
+      .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     socket.emit('tablesList', publicTables);
     console.log(`📋 Sent ${publicTables.length} tables to ${socket.id}`);
@@ -311,7 +311,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const table = createTable(socket.id, player.name, maxPlayers || 4, isPrivate || false);
+    const table = createTable(socket.id, player.name, maxPlayers || 4, false);
     table.players.push({ 
       ...player, 
       hand: [], 
@@ -324,13 +324,13 @@ io.on('connection', (socket) => {
     socket.emit('tableCreated', { tableId: table.id });
     socket.emit('tableState', getTableState(table, socket.id));
 
-    // Broadcast updated tables list to all clients
     const publicTables = Array.from(tables.values())
-      .filter(t => !t.isPrivate && t.status === 'waiting')
+      .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
     
     console.log(`✨ Table created: ${table.id} by ${player.name}`);
+    console.log(`📊 Total tables: ${tables.size}`);
   });
 
   socket.on('joinTable', ({ tableId }) => {
@@ -354,7 +354,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if already in table
     if (table.players.find(p => p.id === socket.id)) {
       socket.join(tableId);
       socket.emit('tableState', getTableState(table, socket.id));
@@ -370,15 +369,13 @@ io.on('connection', (socket) => {
     table.scores[socket.id] = 0;
     socket.join(tableId);
 
-    // Notify everyone in the table
     io.to(tableId).emit('playerJoined', { 
       player: { id: player.id, name: player.name, avatar: player.avatar } 
     });
     io.to(tableId).emit('tableState', getTableState(table, socket.id));
 
-    // Update global tables list
     const publicTables = Array.from(tables.values())
-      .filter(t => !t.isPrivate && t.status === 'waiting')
+      .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
     
@@ -403,7 +400,6 @@ io.on('connection', (socket) => {
     table.status = 'playing';
     dealTiles(table);
 
-    // Send game started event to each player with their hand
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
       if (playerSocket) {
@@ -411,9 +407,8 @@ io.on('connection', (socket) => {
       }
     });
 
-    // Update tables list for lobby
     const publicTables = Array.from(tables.values())
-      .filter(t => !t.isPrivate && t.status === 'waiting')
+      .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
     
@@ -439,7 +434,6 @@ io.on('connection', (socket) => {
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino' });
       console.log(`🏆 Game over at table ${tableId}, winner: ${winner}`);
     } else {
-      // Update all players in the table
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
         if (playerSocket) {
@@ -466,7 +460,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Update all players
     table.players.forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
       if (playerSocket) {
@@ -493,9 +486,8 @@ io.on('connection', (socket) => {
       const { winner, scores } = calculateScores(table, null);
       table.status = 'finished';
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked' });
-      console.log(`🚫 Game blocked at table ${tableId}, winner: ${winner}`);
+      console.log(`🚫 Game blocked at table ${tableId}`);
     } else {
-      // Update all players
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
         if (playerSocket) {
@@ -524,8 +516,6 @@ io.on('connection', (socket) => {
         playerSocket.emit('gameStarted', getTableState(table, p.id));
       }
     });
-    
-    console.log(`🔄 Rematch started at table ${tableId}`);
   });
 
   socket.on('leaveTable', ({ tableId }) => {
@@ -535,7 +525,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);
     
-    // Remove player from any table they were in
     tables.forEach((table, tableId) => {
       if (table.players.some(p => p.id === socket.id)) {
         handleLeave(socket, tableId);
@@ -557,29 +546,23 @@ io.on('connection', (socket) => {
 
     if (table.players.length === 0) {
       tables.delete(tableId);
-      console.log(`🗑️ Table ${tableId} deleted (empty)`);
+      console.log(`🗑️ Table ${tableId} deleted`);
     } else {
-      // If host left, assign new host
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
         table.hostName = table.players[0].name;
-        console.log(`👑 New host for table ${tableId}: ${table.players[0].name}`);
       }
       
-      // If game was in progress, update state
       if (table.status === 'playing') {
         if (table.currentTurn >= table.players.length) {
           table.currentTurn = 0;
         }
         
-        // Check if game can continue (need at least 2 players)
         if (table.players.length < 2) {
           table.status = 'waiting';
-          console.log(`⏸️ Table ${tableId} returned to waiting (less than 2 players)`);
         }
       }
       
-      // Update remaining players
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
         if (playerSocket) {
@@ -589,27 +572,15 @@ io.on('connection', (socket) => {
       io.to(tableId).emit('playerLeft', { playerId: socket.id });
     }
 
-    // Update global tables list
     const publicTables = Array.from(tables.values())
-      .filter(t => !t.isPrivate && t.status === 'waiting')
+      .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
     
-    console.log(`👋 Player ${leavingPlayer.name} left table ${tableId}`);
+    console.log(`👋 Player ${leavingPlayer.name} left`);
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    tables: tables.size,
-    players: players.size,
-    uptime: process.uptime()
-  });
-});
-
-// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`
@@ -618,7 +589,7 @@ server.listen(PORT, '0.0.0.0', () => {
 ║      🎲 DOMINO SERVER STARTED 🎲                  ║
 ║                                                   ║
 ║   Port: ${PORT}                                      ║
-║   Environment: ${process.env.NODE_ENV || 'development'}     ║
+║   URL: http://localhost:${PORT}                    ║
 ║                                                   ║
 ╚═══════════════════════════════════════════════════╝
   `);
