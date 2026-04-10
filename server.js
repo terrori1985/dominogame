@@ -6,46 +6,35 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Настройка Socket.IO
+// Socket.IO с правильной конфигурацией
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
   },
   transports: ['websocket', 'polling'],
-  allowEIO3: true,
-  pingTimeout: 60000,
-  pingInterval: 25000
+  allowEIO3: true
 });
 
 // Middleware
 app.use(express.json());
-// ВАЖНО: указываем правильную директорию для статических файлов
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Для отладки - выводим путь к статическим файлам
-console.log('Static files served from:', path.join(__dirname, 'public'));
-
-// Главный маршрут - отдаем index.html
+// Главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    tables: tables.size,
-    players: players.size,
-    uptime: process.uptime(),
-    staticPath: path.join(__dirname, 'public')
-  });
+  res.json({ status: 'ok', timestamp: Date.now() });
 });
 
-// Game state
+// Хранилище
 const tables = new Map();
 const players = new Map();
 
+// Игровая логика
 function createDominoSet() {
   const tiles = [];
   for (let i = 0; i <= 6; i++) {
@@ -57,15 +46,14 @@ function createDominoSet() {
 }
 
 function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return a;
+  return arr;
 }
 
-function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
+function createTable(hostId, hostName, maxPlayers = 4) {
   const tableId = 'T' + Date.now().toString(36).toUpperCase() + 
                   Math.random().toString(36).substr(2, 4).toUpperCase();
   const table = {
@@ -73,7 +61,6 @@ function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
     hostId,
     hostName,
     maxPlayers,
-    isPrivate: false, // Все столы публичные для тестирования
     players: [],
     status: 'waiting',
     board: [],
@@ -85,7 +72,7 @@ function createTable(hostId, hostName, maxPlayers = 4, isPrivate = false) {
     createdAt: Date.now()
   };
   tables.set(tableId, table);
-  console.log(`✅ Table created: ${tableId} by ${hostName}`);
+  console.log(`Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -93,7 +80,7 @@ function dealTiles(table) {
   const allTiles = shuffle(createDominoSet());
   const perPlayer = table.players.length <= 2 ? 7 : 6;
   
-  table.players.forEach((p, i) => {
+  table.players.forEach(p => {
     p.hand = allTiles.splice(0, perPlayer);
     p.handCount = p.hand.length;
   });
@@ -123,7 +110,6 @@ function getPublicTable(table) {
     maxPlayers: table.maxPlayers,
     playerCount: table.players.length,
     status: table.status,
-    isPrivate: table.isPrivate,
     createdAt: table.createdAt
   };
 }
@@ -145,8 +131,7 @@ function getTableState(table, playerId) {
       name: p.name,
       avatar: p.avatar,
       handCount: p.hand ? p.hand.length : 0,
-      score: table.scores[p.id] || 0,
-      isActive: p.isActive
+      score: table.scores[p.id] || 0
     })),
     myHand: player.hand || [],
     scores: table.scores,
@@ -186,8 +171,6 @@ function playTile(table, playerId, tileIdx, side) {
       } else if (tile[0] === table.boardEnds.left) {
         placedTile = [tile[1], tile[0]];
         table.boardEnds.left = tile[1];
-      } else {
-        return { error: 'Tile does not match left end' };
       }
       table.board.unshift({ tile: placedTile, side: 'left' });
     } else {
@@ -196,8 +179,6 @@ function playTile(table, playerId, tileIdx, side) {
       } else if (tile[1] === table.boardEnds.right) {
         placedTile = [tile[1], tile[0]];
         table.boardEnds.right = tile[0];
-      } else {
-        return { error: 'Tile does not match right end' };
       }
       table.board.push({ tile: placedTile, side: 'right' });
     }
@@ -280,20 +261,14 @@ function calculateScores(table, winnerId) {
   }
 }
 
-// Socket.IO
+// Socket.IO события
 io.on('connection', (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`Client connected: ${socket.id}`);
 
   socket.on('register', ({ name, avatar, telegramId }) => {
-    const player = { 
-      id: socket.id, 
-      name: name || 'Игрок', 
-      avatar: avatar || '🎲', 
-      telegramId: telegramId || null 
-    };
-    players.set(socket.id, player);
+    players.set(socket.id, { id: socket.id, name, avatar, telegramId });
     socket.emit('registered', { id: socket.id });
-    console.log(`📝 Player registered: ${name} (${socket.id})`);
+    console.log(`Player registered: ${name}`);
   });
 
   socket.on('getTables', () => {
@@ -301,23 +276,17 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     socket.emit('tablesList', publicTables);
-    console.log(`📋 Sent ${publicTables.length} tables to ${socket.id}`);
   });
 
-  socket.on('createTable', ({ maxPlayers, isPrivate }) => {
+  socket.on('createTable', ({ maxPlayers }) => {
     const player = players.get(socket.id);
     if (!player) {
       socket.emit('error', 'Not registered');
       return;
     }
 
-    const table = createTable(socket.id, player.name, maxPlayers || 4, false);
-    table.players.push({ 
-      ...player, 
-      hand: [], 
-      handCount: 0, 
-      isActive: true 
-    });
+    const table = createTable(socket.id, player.name, maxPlayers || 4);
+    table.players.push({ ...player, hand: [], handCount: 0 });
     table.scores[socket.id] = 0;
 
     socket.join(table.id);
@@ -328,9 +297,6 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
-    
-    console.log(`✨ Table created: ${table.id} by ${player.name}`);
-    console.log(`📊 Total tables: ${tables.size}`);
   });
 
   socket.on('joinTable', ({ tableId }) => {
@@ -360,12 +326,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    table.players.push({ 
-      ...player, 
-      hand: [], 
-      handCount: 0, 
-      isActive: true 
-    });
+    table.players.push({ ...player, hand: [], handCount: 0 });
     table.scores[socket.id] = 0;
     socket.join(tableId);
 
@@ -378,8 +339,6 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
-    
-    console.log(`👤 Player ${player.name} joined table ${tableId}`);
   });
 
   socket.on('startGame', ({ tableId }) => {
@@ -411,8 +370,6 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
-    
-    console.log(`🎮 Game started at table ${tableId}`);
   });
 
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
@@ -422,7 +379,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const result = playTile(table, socket.id, tileIdx, side || 'right');
+    const result = playTile(table, socket.id, tileIdx, side);
     if (result.error) {
       socket.emit('error', result.error);
       return;
@@ -432,7 +389,6 @@ io.on('connection', (socket) => {
       const { winner, scores } = calculateScores(table, socket.id);
       table.status = 'finished';
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'domino' });
-      console.log(`🏆 Game over at table ${tableId}, winner: ${winner}`);
     } else {
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
@@ -486,7 +442,6 @@ io.on('connection', (socket) => {
       const { winner, scores } = calculateScores(table, null);
       table.status = 'finished';
       io.to(tableId).emit('gameOver', { winner, scores, reason: 'blocked' });
-      console.log(`🚫 Game blocked at table ${tableId}`);
     } else {
       table.players.forEach(p => {
         const playerSocket = io.sockets.sockets.get(p.id);
@@ -523,14 +478,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`🔌 Client disconnected: ${socket.id}`);
-    
     tables.forEach((table, tableId) => {
       if (table.players.some(p => p.id === socket.id)) {
         handleLeave(socket, tableId);
       }
     });
-    
     players.delete(socket.id);
   });
 
@@ -538,29 +490,19 @@ io.on('connection', (socket) => {
     const table = tables.get(tableId);
     if (!table) return;
 
-    const leavingPlayer = table.players.find(p => p.id === socket.id);
-    if (!leavingPlayer) return;
-
     table.players = table.players.filter(p => p.id !== socket.id);
     socket.leave(tableId);
 
     if (table.players.length === 0) {
       tables.delete(tableId);
-      console.log(`🗑️ Table ${tableId} deleted`);
     } else {
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
         table.hostName = table.players[0].name;
       }
       
-      if (table.status === 'playing') {
-        if (table.currentTurn >= table.players.length) {
-          table.currentTurn = 0;
-        }
-        
-        if (table.players.length < 2) {
-          table.status = 'waiting';
-        }
+      if (table.status === 'playing' && table.players.length < 2) {
+        table.status = 'waiting';
       }
       
       table.players.forEach(p => {
@@ -576,21 +518,10 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     io.emit('tablesUpdate', publicTables);
-    
-    console.log(`👋 Player ${leavingPlayer.name} left`);
   }
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`
-╔═══════════════════════════════════════════════════╗
-║                                                   ║
-║      🎲 DOMINO SERVER STARTED 🎲                  ║
-║                                                   ║
-║   Port: ${PORT}                                      ║
-║   URL: http://localhost:${PORT}                    ║
-║                                                   ║
-╚═══════════════════════════════════════════════════╝
-  `);
+  console.log(`Server running on port ${PORT}`);
 });
