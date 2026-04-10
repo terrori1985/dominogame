@@ -4,7 +4,7 @@ let currentGameId = null;
 let isHost = false;
 let currentUser = null;
 let gamesList = [];
-let gameState = null;
+let isConnected = false;
 
 // Инициализация
 function initMultiplayer() {
@@ -29,30 +29,52 @@ function initMultiplayer() {
 
 // Подключение к серверу
 function connectToServer() {
-    const SERVER_URL = 'https://domino-server.onrender.com'; // Замени на свой URL
+    // ⚠️ ЗАМЕНИ НА СВОЙ URL ОТ RENDER
+    const SERVER_URL = 'https://domino-server.onrender.com';
+    
+    showLoading('Подключение к серверу...');
     
     socket = io(SERVER_URL, {
         transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: 5
+        reconnectionAttempts: 5,
+        timeout: 10000
     });
     
     socket.on('connect', () => {
         console.log('✅ Подключено к серверу');
+        isConnected = true;
+        hideLoading();
         showToast('Подключено к серверу', 'success');
+        enableButtons(true);
+        
+        // Запрашиваем список игр
+        socket.emit('refreshGames');
+    });
+    
+    socket.on('connect_error', (error) => {
+        console.error('❌ Ошибка подключения:', error);
+        hideLoading();
+        showToast('Не удалось подключиться к серверу. Проверьте интернет.', 'error');
+        enableButtons(false);
+        showServerError();
     });
     
     socket.on('disconnect', () => {
         console.log('❌ Отключено от сервера');
+        isConnected = false;
         showToast('Потеряно соединение с сервером', 'error');
+        enableButtons(false);
     });
     
     socket.on('gamesList', (data) => {
-        gamesList = data.games;
+        console.log('Получен список игр:', data.games.length);
+        gamesList = data.games || [];
         displayGamesList(gamesList);
     });
     
     socket.on('gameCreated', (data) => {
+        console.log('Игра создана:', data.gameId);
         currentGameId = data.gameId;
         isHost = true;
         showWaitingRoom(data.gameData);
@@ -60,13 +82,17 @@ function connectToServer() {
     });
     
     socket.on('joinSuccess', (data) => {
+        console.log('Успешно присоединился к игре:', data.gameId);
         currentGameId = data.gameId;
         isHost = false;
         localStorage.setItem('dominoSettings', JSON.stringify(data.settings));
+        localStorage.setItem('currentGameId', data.gameId);
+        localStorage.setItem('isHost', 'false');
         startGame(data.players, data.settings);
     });
     
     socket.on('playerJoined', (data) => {
+        console.log('Игрок присоединился к игре:', data.gameId);
         if (data.gameId === currentGameId) {
             showToast('Соперник присоединился! Игра начинается...', 'success');
             setTimeout(() => {
@@ -76,6 +102,7 @@ function connectToServer() {
     });
     
     socket.on('joinError', (data) => {
+        console.error('Ошибка присоединения:', data.message);
         showToast(data.message, 'error');
     });
     
@@ -105,6 +132,67 @@ function connectToServer() {
     });
 }
 
+// Включение/отключение кнопок
+function enableButtons(enabled) {
+    const createBtn = document.getElementById('createGameBtn');
+    const refreshBtn = document.getElementById('refreshGamesBtn');
+    
+    if (createBtn) {
+        createBtn.disabled = !enabled;
+        if (enabled) {
+            createBtn.style.opacity = '1';
+            createBtn.style.cursor = 'pointer';
+        } else {
+            createBtn.style.opacity = '0.5';
+            createBtn.style.cursor = 'not-allowed';
+        }
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.disabled = !enabled;
+        if (enabled) {
+            refreshBtn.style.opacity = '1';
+            refreshBtn.style.cursor = 'pointer';
+        } else {
+            refreshBtn.style.opacity = '0.5';
+            refreshBtn.style.cursor = 'not-allowed';
+        }
+    }
+}
+
+// Показать ошибку сервера
+function showServerError() {
+    const gamesListEl = document.getElementById('gamesList');
+    if (gamesListEl) {
+        gamesListEl.innerHTML = `
+            <div class="error-games">
+                <span>⚠️</span>
+                <p>Не удалось подключиться к серверу</p>
+                <button onclick="window.location.reload()" class="btn-retry">
+                    🔄 Попробовать снова
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Показать загрузку
+function showLoading(message) {
+    const gamesListEl = document.getElementById('gamesList');
+    if (gamesListEl) {
+        gamesListEl.innerHTML = `
+            <div class="loading-games">
+                <span class="loading-spinner">⏳</span>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+}
+
+function hideLoading() {
+    // Очищается при получении списка
+}
+
 // Отображение информации о пользователе
 function displayUserInfo() {
     const userElement = document.getElementById('telegramUser');
@@ -117,7 +205,14 @@ function displayUserInfo() {
 function setupEventListeners() {
     const createBtn = document.getElementById('createGameBtn');
     if (createBtn) {
-        createBtn.addEventListener('click', () => createGame());
+        createBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!isConnected) {
+                showToast('Подождите, идёт подключение к серверу...', 'error');
+                return;
+            }
+            createGame();
+        });
     }
     
     const copyBtn = document.getElementById('copyInviteBtn');
@@ -132,14 +227,26 @@ function setupEventListeners() {
     
     const refreshBtn = document.getElementById('refreshGamesBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => refreshGames());
+        refreshBtn.addEventListener('click', () => {
+            if (isConnected && socket) {
+                socket.emit('refreshGames');
+                showToast('Обновление списка...', 'info');
+            }
+        });
     }
 }
 
 // Создание игры
 function createGame() {
+    if (!socket || !isConnected) {
+        showToast('Нет соединения с сервером', 'error');
+        return;
+    }
+    
     const stoneType = document.getElementById('gameStoneType')?.value || 'classic';
     const tableTheme = document.getElementById('gameTableTheme')?.value || 'green';
+    
+    console.log('Создание игры с настройками:', { stoneType, tableTheme });
     
     socket.emit('createGame', {
         user: currentUser,
@@ -149,6 +256,13 @@ function createGame() {
 
 // Присоединение к игре
 function joinGame(gameId) {
+    if (!socket || !isConnected) {
+        showToast('Нет соединения с сервером', 'error');
+        return;
+    }
+    
+    console.log('Присоединение к игре:', gameId);
+    
     socket.emit('joinGame', {
         gameId: gameId,
         user: currentUser
@@ -160,7 +274,7 @@ function displayGamesList(games) {
     const gamesListEl = document.getElementById('gamesList');
     if (!gamesListEl) return;
     
-    if (games.length === 0) {
+    if (!games || games.length === 0) {
         gamesListEl.innerHTML = `
             <div class="empty-games">
                 <span>🎲</span>
@@ -214,13 +328,17 @@ function showWaitingRoom(gameData) {
 function updatePlayersList(players) {
     const list = document.getElementById('playersList');
     if (list) {
-        list.innerHTML = players.map(p => `
-            <li>
-                ${p.isHost ? '👑' : '👤'} 
-                <strong>${escapeHtml(p.name)}</strong>
-                ${p.id === currentUser?.id ? ' (Вы)' : ''}
-            </li>
-        `).join('');
+        if (!players || players.length === 0) {
+            list.innerHTML = '<li>👑 Ожидание игроков...</li>';
+        } else {
+            list.innerHTML = players.map(p => `
+                <li>
+                    ${p.isHost ? '👑' : '👤'} 
+                    <strong>${escapeHtml(p.name)}</strong>
+                    ${p.id === currentUser?.id ? ' (Вы)' : ''}
+                </li>
+            `).join('');
+        }
     }
 }
 
@@ -230,23 +348,18 @@ function copyInviteLink() {
     if (inviteLink) {
         navigator.clipboard.writeText(inviteLink).then(() => {
             showToast('✅ Ссылка скопирована!', 'success');
+        }).catch(() => {
+            showToast('📋 Ссылка: ' + inviteLink, 'info');
         });
     }
 }
 
 // Отмена создания игры
 function cancelGame() {
-    if (socket && currentGameId) {
+    if (socket && socket.connected && currentGameId) {
         socket.emit('leaveGame', { gameId: currentGameId });
     }
     window.location.reload();
-}
-
-// Обновление списка игр
-function refreshGames() {
-    if (socket) {
-        socket.emit('refreshGames');
-    }
 }
 
 // Запуск игры
@@ -256,7 +369,9 @@ function startGame(players, settings) {
     localStorage.setItem('isHost', isHost ? 'true' : 'false');
     localStorage.setItem('currentGameId', currentGameId);
     
-    window.location.href = 'game.html';
+    setTimeout(() => {
+        window.location.href = 'game.html';
+    }, 500);
 }
 
 // Утилиты
@@ -287,6 +402,7 @@ function escapeHtml(text) {
 function showToast(message, type = 'info') {
     const tg = window.Telegram.WebApp;
     tg.showAlert(message);
+    console.log(`[${type}] ${message}`);
 }
 
 // Экспорт глобальных функций
@@ -294,7 +410,11 @@ window.initMultiplayer = initMultiplayer;
 window.joinGame = joinGame;
 window.createGame = createGame;
 
-// Запуск
-document.addEventListener('DOMContentLoaded', () => {
+// Запуск после загрузки страницы
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initMultiplayer();
+    });
+} else {
     initMultiplayer();
-});
+}
