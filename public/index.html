@@ -132,7 +132,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .opponent-card.active .opp-avatar { border-color: var(--gold); }
 .opp-name { font-size: 12px; color: rgba(255,255,255,0.7); max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .opp-tiles { display: flex; gap: 3px; }
-.mini-tile { width: 12px; height: 20px; background: var(--tile-bg); border-radius: 3px; border: 1px solid var(--tile-border); }
 .opp-score { font-size: 12px; font-weight: 700; color: var(--gold); }
 
 .my-hand-area { background: var(--panel-bg); border-top: 1px solid var(--panel-border); padding: 12px 0 16px; }
@@ -145,7 +144,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .action-btn.draw { border-color: var(--accent); color: var(--accent); }
 .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ДОМИНО КОСТИ - УВЕЛИЧЕННЫЕ */
+/* ДОМИНО КОСТИ */
 .domino-tile { position: relative; display: inline-flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex-shrink: 0; overflow: hidden; }
 .domino-tile:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 12px 25px rgba(0,0,0,0.4); }
 .domino-tile:active { transform: scale(0.97); }
@@ -196,7 +195,6 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   color: #1a1a1a;
   font-weight: 700;
 }
-.chat-header span:first-child { font-size: 16px; }
 .chat-toggle-btn { font-size: 20px; cursor: pointer; }
 .chat-messages {
   height: 300px;
@@ -294,15 +292,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   font-weight: bold;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* АНИМАЦИИ */
 @keyframes slideIn { from { opacity:0; transform: translateX(-20px); } to { opacity:1; transform: translateX(0); } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes fadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform: scale(1); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes popIn { from { opacity:0; transform: scale(0.7); } to { opacity:1; transform: scale(1); } }
 @keyframes pulseGold { 0%,100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.4); } 50% { box-shadow: 0 0 0 8px rgba(212,168,67,0); } }
 @keyframes glowGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(80,200,120,0.5); } 50% { box-shadow: 0 0 15px 5px rgba(80,200,120,0.4); } }
@@ -318,6 +312,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .score-update { animation: scorePop 0.4s ease; }
 @keyframes scorePop { 0% { transform: scale(1); } 50% { transform: scale(1.2); color: var(--gold); } 100% { transform: scale(1); } }
 .winner-animation { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 56px; font-weight: bold; color: gold; text-shadow: 0 0 20px rgba(255,215,0,0.8); z-index: 600; animation: winnerPulse 1s ease-out; pointer-events: none; }
+@keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
 
 /* МОДАЛЬНЫЕ ОКНА */
 .modal-overlay { position: fixed; inset: 0; z-index: 300; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,0.7); }
@@ -544,6 +539,16 @@ const state = {
   unreadMessages: 0
 };
 
+// ===== ПРЕДОТВРАЩЕНИЕ ЗАСЫПАНИЯ RENDER =====
+function keepAlive() {
+  fetch(window.location.origin + '/health')
+    .then(response => response.json())
+    .then(data => console.log('Keep-alive ping:', data))
+    .catch(err => console.log('Keep-alive error:', err));
+}
+// Запускаем пинг каждые 4 минуты (Render бесплатный таймаут - 5 минут)
+setInterval(keepAlive, 4 * 60 * 1000);
+
 // ===== ЧАТ =====
 let chatOpen = false;
 
@@ -742,6 +747,15 @@ function connectSocket() {
     }
   });
   
+  // История чата при подключении
+  socket.on('chatHistory', (messages) => {
+    if (messages && messages.length > 0) {
+      messages.forEach(msg => {
+        addChatMessage(msg.playerName, msg.message, false);
+      });
+    }
+  });
+  
   socket.on('gameOver', ({ winner, scores, reason, totalPips }) => {
     state.gamesPlayed++;
     const isWin = winner === state.player.id;
@@ -755,28 +769,24 @@ function connectSocket() {
 }
 
 function spawnConfetti() {
-  const colors = ['#d4a843', '#f0c862', '#50c878', '#e05050', '#6ab4f5', '#ffffff'];
   for (let i = 0; i < 100; i++) {
     setTimeout(() => {
       const conf = document.createElement('div');
       conf.className = 'confetti';
       conf.style.position = 'fixed';
       conf.style.left = Math.random() * 100 + '%';
-      conf.style.background = colors[Math.floor(Math.random() * colors.length)];
+      conf.style.background = ['#d4a843', '#f0c862', '#50c878', '#e05050', '#6ab4f5', '#ffffff'][Math.floor(Math.random() * 6)];
       conf.style.width = (5 + Math.random() * 10) + 'px';
       conf.style.height = (5 + Math.random() * 10) + 'px';
       conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
       conf.style.top = '-10px';
       conf.style.zIndex = '650';
-      conf.style.animation = `confettiFall ${1 + Math.random() * 2}s ease-in forwards`;
+      conf.style.animation = 'confettiFall 2s ease-in forwards';
       document.body.appendChild(conf);
       conf.addEventListener('animationend', () => conf.remove());
     }, i * 20);
   }
 }
-const style = document.createElement('style');
-style.textContent = `@keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }`;
-document.head.appendChild(style);
 
 function showWinnerAnimation(name, points) {
   const div = document.createElement('div');
