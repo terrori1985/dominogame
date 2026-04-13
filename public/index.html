@@ -35,23 +35,16 @@ body.theme-red { --felt: #7b241c; --felt-light: #a93226; --felt-dark: #641e16; -
 /* СТИЛИ КОСТЕЙ */
 .tile-style-classic .domino-tile { background: #fdf8ee; border: 2px solid #c8b88a; border-radius: 7px; }
 .tile-style-classic .dot { background: #1a1a1a; }
-
 .tile-style-black .domino-tile { background: #2c2c2c; border: 2px solid #555; border-radius: 7px; }
 .tile-style-black .dot { background: #ffffff; box-shadow: 0 0 2px #fff; }
-.tile-style-black .tile-divider-h, .tile-style-black .tile-divider-v { background: rgba(255,255,255,0.3); }
-
 .tile-style-white .domino-tile { background: #ffffff; border: 2px solid #ccc; border-radius: 7px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .tile-style-white .dot { background: #333; }
-
 .tile-style-wood .domino-tile { background: linear-gradient(135deg, #c9a87b, #b8894a); border: 2px solid #8b5e2c; border-radius: 5px; }
-.tile-style-wood .dot { background: #3e2723; text-shadow: 0 1px 0 rgba(255,255,255,0.2); }
-
+.tile-style-wood .dot { background: #3e2723; }
 .tile-style-stone .domino-tile { background: linear-gradient(135deg, #9e9e9e, #757575); border: 2px solid #616161; border-radius: 4px; }
 .tile-style-stone .dot { background: #424242; }
-
 .tile-style-colorful .domino-tile { background: linear-gradient(135deg, #fff8e7, #ffe4b5); border: 3px solid #ff8c00; border-radius: 12px; }
 .tile-style-colorful .dot { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
-
 .tile-style-minimal .domino-tile { background: #ffffff; border: 1px solid #ddd; border-radius: 4px; box-shadow: none; }
 .tile-style-minimal .dot { background: #333; width: 6px; height: 6px; }
 
@@ -69,8 +62,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .search-bar { display: flex; gap: 8px; padding: 12px 16px; background: var(--panel-bg); border-bottom: 1px solid var(--panel-border); }
 .search-bar input { flex: 1; padding: 10px 14px; background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); border-radius: var(--radius); color: #fff; font-size: 15px; outline: none; }
 .tables-list { flex: 1; overflow-y: auto; padding: 12px 16px; }
-.table-card { display: flex; align-items: center; padding: 14px 16px; margin-bottom: 10px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius); cursor: pointer; transition: all 0.2s; }
-.table-card:hover { border-color: var(--gold); background: rgba(0,0,0,0.6); }
+.table-card { display: flex; align-items: center; padding: 14px 16px; margin-bottom: 10px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius); cursor: pointer; transition: all 0.2s; animation: slideIn 0.3s ease; }
+.table-card:hover { border-color: var(--gold); background: rgba(0,0,0,0.6); transform: translateY(-2px); }
 .table-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--felt), var(--felt-light)); border: 2px solid var(--gold-dark); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-right: 12px; }
 .table-info { flex: 1; }
 .table-name { font-weight: 700; font-size: 16px; color: var(--gold-light); }
@@ -81,18 +74,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .lobby-footer { padding: 12px 16px 24px; display: flex; gap: 10px; background: var(--panel-bg); border-top: 1px solid var(--panel-border); }
 .btn { flex: 1; padding: 14px; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
 .btn:active { transform: scale(0.96); }
-.btn-primary { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: #1a1a1a; }
+.btn-primary { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: #1a1a1a; box-shadow: 0 4px 15px rgba(212,168,67,0.3); }
 .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text-on-felt); border: 1px solid var(--panel-border); }
 
 /* WAITING SCREEN */
 #waiting-screen { background: linear-gradient(160deg, #0d2d1a 0%, #1a4a2e 50%, #0d2d1a 100%); }
 .waiting-header { padding: 20px 16px 16px; background: var(--panel-bg); border-bottom: 1px solid var(--panel-border); display: flex; align-items: center; gap: 12px; }
-.back-btn { width: 36px; height: 36px; background: rgba(255,255,255,0.1); border: 1px solid var(--panel-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+.back-btn { width: 36px; height: 36px; background: rgba(255,255,255,0.1); border: 1px solid var(--panel-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.2s; }
+.back-btn:active { transform: scale(0.9); }
 .waiting-title { flex: 1; }
 .waiting-title h2 { font-size: 20px; font-weight: 700; color: var(--gold-light); }
 .table-id-badge { padding: 6px 12px; background: rgba(212,168,67,0.15); border: 1px solid var(--panel-border); border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
 .players-grid { flex: 1; padding: 20px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
-.player-slot { padding: 16px; border-radius: var(--radius); border: 1px solid var(--panel-border); text-align: center; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.player-slot { padding: 16px; border-radius: var(--radius); border: 1px solid var(--panel-border); text-align: center; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; animation: fadeIn 0.3s ease; }
 .player-slot.filled { background: var(--panel-bg); border-color: var(--gold-dark); }
 .player-slot.empty { background: rgba(255,255,255,0.03); border-style: dashed; }
 .player-slot.host-slot { border-color: var(--gold); }
@@ -102,64 +96,162 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 /* GAME SCREEN */
 #game-screen { background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%); overflow: hidden; }
 .game-topbar { display: flex; align-items: center; padding: 8px 12px; gap: 8px; background: var(--panel-bg); border-bottom: 1px solid var(--panel-border); flex-wrap: wrap; }
-.score-chip { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba(212,168,67,0.12); border: 1px solid var(--panel-border); border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; }
-.score-chip.active { border-color: var(--gold); background: rgba(212,168,67,0.2); }
+.score-chip { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba(212,168,67,0.12); border: 1px solid var(--panel-border); border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; transition: all 0.3s ease; }
+.score-chip.active { border-color: var(--gold); background: rgba(212,168,67,0.2); animation: pulseGold 1.5s infinite; }
 .boneyard-counter { margin-left: auto; padding: 5px 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--panel-border); border-radius: 20px; font-size: 13px; }
 
 .board-area { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-.board-table { position: absolute; width: calc(100% - 24px); height: calc(100% - 16px); border-radius: 24px; background: radial-gradient(ellipse at center, var(--felt-light) 0%, var(--felt) 60%, var(--felt-dark) 100%); border: 3px solid var(--gold-dark); overflow: hidden; }
-.board-tiles { position: relative; z-index: 2; display: flex; align-items: center; padding: 8px; gap: 3px; overflow-x: auto; scrollbar-width: none; }
+.board-table { position: absolute; width: calc(100% - 24px); height: calc(100% - 16px); border-radius: 24px; background: radial-gradient(ellipse at center, var(--felt-light) 0%, var(--felt) 60%, var(--felt-dark) 100%); border: 3px solid var(--gold-dark); overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.4); }
+.board-felt-pattern { position: absolute; inset: 0; opacity: 0.05; background-image: repeating-linear-gradient(45deg, #fff 0px, #fff 1px, transparent 1px, transparent 8px); }
+.board-tiles { position: relative; z-index: 2; display: flex; align-items: center; padding: 8px; gap: 3px; min-height: 100px; overflow-x: auto; scrollbar-width: none; }
 .board-tiles::-webkit-scrollbar { display: none; }
 .board-ends { position: absolute; bottom: 8px; display: flex; gap: 16px; z-index: 3; width: 100%; justify-content: center; }
 .end-badge { padding: 4px 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 12px; font-size: 13px; font-weight: 700; color: var(--gold); }
 
 .opponents-area { display: flex; justify-content: space-around; padding: 8px 12px; background: var(--panel-bg); border-bottom: 1px solid var(--panel-border); flex-wrap: wrap; }
-.opponent-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid transparent; min-width: 70px; }
+.opponent-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid transparent; transition: all 0.3s; min-width: 70px; }
 .opponent-card.active { border-color: var(--gold); background: rgba(212,168,67,0.1); animation: pulseGold 1.5s infinite; }
-.opp-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #2a5a3e, #3a7a5e); border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--gold-light); }
+.opp-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #2a5a3e, #3a7a5e); border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--gold-light); transition: border-color 0.3s; }
 .opponent-card.active .opp-avatar { border-color: var(--gold); }
 .opp-name { font-size: 11px; color: rgba(255,255,255,0.6); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .opp-tiles { display: flex; gap: 2px; }
-.mini-tile { width: 8px; height: 14px; background: var(--tile-bg); border-radius: 2px; border: 1px solid var(--tile-border); }
+.mini-tile { width: 8px; height: 14px; background: var(--tile-bg); border-radius: 2px; border: 1px solid var(--tile-border); transition: all 0.2s; }
 .opp-score { font-size: 12px; font-weight: 700; color: var(--gold); }
 
-.my-hand-area { background: var(--panel-bg); border-top: 1px solid var(--panel-border); padding: 10px 0 16px; }
-.hand-label { text-align: center; font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-transform: uppercase; }
+.my-hand-area { background: var(--panel-bg); border-top: 1px solid var(--panel-border); padding: 10px 0 16px; transition: all 0.3s; }
+.hand-label { text-align: center; font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
 .hand-tiles { display: flex; justify-content: center; gap: 6px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; }
+.hand-tiles::-webkit-scrollbar { display: none; }
 
 .action-bar { display: flex; gap: 8px; padding: 8px 12px; background: var(--panel-bg); border-top: 1px solid var(--panel-border); }
-.action-btn { flex: 1; padding: 11px 8px; border: 1px solid var(--panel-border); border-radius: var(--radius); background: rgba(255,255,255,0.07); color: var(--text-on-felt); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.action-btn { flex: 1; padding: 11px 8px; border: 1px solid var(--panel-border); border-radius: var(--radius); background: rgba(255,255,255,0.07); color: var(--text-on-felt); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
 .action-btn:active { transform: scale(0.95); }
 .action-btn.draw { border-color: var(--accent); color: var(--accent); }
+.action-btn.draw:hover { background: rgba(232,160,32,0.15); }
 .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+/* ДОМИНО КОСТИ */
 .domino-tile { position: relative; display: inline-flex; flex-direction: column; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex-shrink: 0; overflow: hidden; }
-.domino-tile:hover { transform: translateY(-4px) scale(1.05); }
+.domino-tile:hover { transform: translateY(-6px) scale(1.05); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 .domino-tile:active { transform: scale(0.95); }
-.domino-tile.selected { transform: translateY(-8px); box-shadow: 0 10px 24px rgba(212,168,67,0.5); }
-.domino-tile.playable { animation: glowGreen 1.5s infinite; }
+.domino-tile.selected { transform: translateY(-12px) scale(1.08); box-shadow: 0 12px 28px rgba(212,168,67,0.5); border-color: var(--gold) !important; }
+.domino-tile.playable { animation: glowGreen 1.5s infinite; cursor: pointer; }
 .domino-tile.board-tile { cursor: default; transform: none !important; }
+.domino-tile.board-tile:hover { transform: none; }
 .domino-tile.horizontal { flex-direction: row; }
-.tile-hand { width: 36px; height: 64px; }
-.tile-hand .tile-half { width: 36px; height: 32px; }
-.tile-board { width: 30px; height: 52px; }
-.tile-board .tile-half { width: 30px; height: 26px; }
-.tile-board.horizontal { width: 52px; height: 30px; }
-.tile-board.horizontal .tile-half { width: 26px; height: 30px; }
-.tile-half { display: flex; align-items: center; justify-content: center; position: relative; }
-.tile-divider-h { width: calc(100% - 8px); height: 1px; background: rgba(0,0,0,0.18); margin: 0 4px; }
-.tile-divider-v { width: 1px; height: calc(100% - 8px); background: rgba(0,0,0,0.18); margin: 4px 0; }
 
-.dots { display: grid; width: 100%; height: 100%; padding: 4px; }
-.d1 { grid-template: 1fr / 1fr; }
-.d2 { grid-template: 1fr / 1fr 1fr; }
-.d3 { grid-template: 1fr 1fr 1fr / 1fr; }
-.d4 { grid-template: 1fr 1fr / 1fr 1fr; }
-.d5 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
-.d6 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
-.dot { width: 7px; height: 7px; border-radius: 50%; place-self: center; }
-.tile-hand .dot { width: 7px; height: 7px; }
-.tile-board .dot { width: 5px; height: 5px; }
+/* АНИМАЦИЯ ПОЛЕТА КОСТИ */
+.flying-tile {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+}
+.flying-tile.fly-start {
+  opacity: 1;
+  transform: scale(1);
+}
+.flying-tile.fly-end {
+  opacity: 1;
+  transform: scale(0.8);
+}
+
+/* АНИМАЦИЯ НОВОЙ КОСТИ НА СТОЛЕ */
+.tile-new {
+  animation: tileLand 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+@keyframes tileLand {
+  0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+  40% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+  70% { transform: scale(0.95) rotate(-5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* АНИМАЦИЯ ВЗЯТИЯ КОСТИ */
+.tile-drawn {
+  animation: tileDraw 0.4s ease-out;
+}
+@keyframes tileDraw {
+  0% { transform: translateX(-50px) rotate(-30deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+}
+
+/* АНИМАЦИЯ ХОДА СОПЕРНИКА */
+.opponent-move {
+  animation: opponentPulse 0.6s ease;
+}
+@keyframes opponentPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); background: rgba(212,168,67,0.3); }
+}
+
+/* АНИМАЦИЯ СБРОСА КОСТИ */
+.tile-discard {
+  animation: tileDiscard 0.3s ease forwards;
+}
+@keyframes tileDiscard {
+  0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(100px) rotate(90deg); opacity: 0; }
+}
+
+/* ПУЛЬСАЦИЯ ПРИ ХОДЕ */
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(212,168,67,0); }
+}
+@keyframes glowGreen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(80,200,120,0.5); }
+  50% { box-shadow: 0 0 12px 4px rgba(80,200,120,0.4); }
+}
+
+/* АНИМАЦИЯ ВХОДА КАРТОЧЕК */
+@keyframes slideIn { from { opacity:0; transform: translateX(-20px); } to { opacity:1; transform: translateX(0); } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform: scale(1); } }
+@keyframes popIn { from { opacity:0; transform: scale(0.7); } to { opacity:1; transform: scale(1); } }
+@keyframes bounceIn { from { opacity:0; transform: translateX(-50%) scale(0.8); } to { opacity:1; transform: translateX(-50%) scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes winnerPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2); } }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* АНИМАЦИЯ ДЛЯ КНОПОК */
+.btn-pulse {
+  animation: btnPulse 0.3s ease;
+}
+@keyframes btnPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* АНИМАЦИЯ ДЛЯ СЧЕТА */
+.score-update {
+  animation: scorePop 0.4s ease;
+}
+@keyframes scorePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); color: var(--gold); }
+  100% { transform: scale(1); }
+}
+
+/* АНИМАЦИЯ ПОБЕДЫ */
+.winner-animation { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: gold; text-shadow: 0 0 20px rgba(255,215,0,0.8); z-index: 600; animation: winnerPulse 1s ease-out; pointer-events: none; }
+
+/* КОНФЕТТИ */
+.confetti { position: fixed; width: 10px; height: 10px; background: var(--gold); position: fixed; top: -10px; z-index: 650; animation: confettiFall 2s ease-in forwards; pointer-events: none; }
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
 
 /* МОДАЛЬНЫЕ ОКНА */
 .modal-overlay { position: fixed; inset: 0; z-index: 100; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,0.7); }
@@ -174,7 +266,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 
 .gameover-modal { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); }
 .gameover-modal.active { display: flex; }
-.gameover-card { background: linear-gradient(160deg, #0d2d1a, #1a4a2e); border: 2px solid var(--gold); border-radius: 20px; padding: 32px 24px; width: calc(100% - 32px); max-width: 360px; text-align: center; animation: popIn 0.4s; }
+.gameover-card { background: linear-gradient(160deg, #0d2d1a, #1a4a2e); border: 2px solid var(--gold); border-radius: 20px; padding: 32px 24px; width: calc(100% - 32px); max-width: 360px; text-align: center; animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .gameover-icon { font-size: 64px; margin-bottom: 12px; }
 .gameover-title { font-size: 32px; font-weight: 900; color: var(--gold-light); }
 .scores-list { margin-bottom: 24px; }
@@ -186,47 +278,39 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
 .side-modal.active { display: flex; }
 .side-sheet { width: 100%; max-width: 480px; background: #0d2d1a; border-top: 2px solid var(--gold-dark); border-radius: 20px 20px 0 0; padding: 20px 20px 40px; animation: slideUp 0.3s ease; }
 .side-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-.side-btn { padding: 20px 12px; background: rgba(255,255,255,0.07); border: 2px solid var(--panel-border); border-radius: var(--radius); color: var(--text-on-felt); font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; }
+.side-btn { padding: 20px 12px; background: rgba(255,255,255,0.07); border: 2px solid var(--panel-border); border-radius: var(--radius); color: var(--text-on-felt); font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; }
 .side-btn:active { transform: scale(0.95); }
 .side-cancel { width: 100%; margin-top: 12px; padding: 14px; background: transparent; border: 1px solid var(--panel-border); border-radius: var(--radius); color: rgba(255,255,255,0.5); cursor: pointer; }
 
-.toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); padding: 10px 20px; background: rgba(0,0,0,0.85); border: 1px solid var(--panel-border); border-radius: 20px; font-size: 14px; color: #fff; z-index: 300; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.boneyard-selector { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: var(--felt); border: 3px solid var(--gold); border-radius: 20px; padding: 20px; z-index: 350; display: none; max-width: 90%; max-height: 80%; overflow-y: auto; opacity: 0; transition: all 0.3s; }
+.boneyard-selector.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.boneyard-tile { display: inline-block; margin: 8px; cursor: pointer; transition: transform 0.2s; }
+.boneyard-tile:hover { transform: scale(1.15); }
 
-.turn-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 16px; background: rgba(212,168,67,0.9); border-radius: 20px; font-size: 14px; font-weight: 700; color: #1a1a1a; z-index: 5; animation: bounceIn 0.4s; }
-
-.counters-bar { display: flex; justify-content: space-around; padding: 6px 12px; background: rgba(0,0,0,0.35); border-bottom: 1px solid var(--panel-border); }
-.counter-item { text-align: center; flex: 1; }
-.counter-value { font-size: 22px; font-weight: 900; color: var(--gold-light); line-height: 1; }
-.counter-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
-
-.settings-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 24px; }
-.settings-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: var(--felt); border: 2px solid var(--gold); border-radius: 20px; padding: 20px; width: 90%; max-width: 350px; z-index: 500; display: none; opacity: 0; transition: all 0.3s; }
-.settings-panel.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-.settings-panel select { width: 100%; padding: 8px; margin: 5px 0; border-radius: 8px; border: none; background: rgba(255,255,255,0.2); color: white; }
-
-.shop-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); border-top: 2px solid var(--gold); border-radius: 20px 20px 0 0; padding: 20px; z-index: 400; display: none; }
+.shop-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); border-top: 2px solid var(--gold); border-radius: 20px 20px 0 0; padding: 20px; z-index: 400; display: none; animation: slideUp 0.3s ease; }
 .shop-panel.active { display: block; }
 .shop-tile { display: inline-block; margin: 5px; cursor: pointer; transition: transform 0.2s; }
 .shop-tile:hover { transform: scale(1.1); }
 .shop-tile.selected { transform: scale(1.15); border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
 
-.boneyard-selector { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--felt); border: 3px solid var(--gold); border-radius: 20px; padding: 20px; z-index: 350; display: none; max-width: 90%; max-height: 80%; overflow-y: auto; }
-.boneyard-selector.active { display: block; }
-.boneyard-tile { display: inline-block; margin: 8px; cursor: pointer; transition: transform 0.2s; }
-.boneyard-tile:hover { transform: scale(1.15); }
+.counters-bar { display: flex; justify-content: space-around; padding: 6px 12px; background: rgba(0,0,0,0.35); border-bottom: 1px solid var(--panel-border); }
+.counter-item { text-align: center; flex: 1; }
+.counter-value { font-size: 22px; font-weight: 900; color: var(--gold-light); line-height: 1; transition: all 0.3s; }
+.counter-label { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.settings-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 24px; transition: transform 0.2s; }
+.settings-btn:active { transform: scale(0.9); }
+.settings-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: var(--felt); border: 2px solid var(--gold); border-radius: 20px; padding: 20px; width: 90%; max-width: 350px; z-index: 500; display: none; opacity: 0; transition: all 0.3s; }
+.settings-panel.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.settings-panel select { width: 100%; padding: 8px; margin: 5px 0; border-radius: 8px; border: none; background: rgba(255,255,255,0.2); color: white; }
+
+.toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); padding: 10px 20px; background: rgba(0,0,0,0.85); border: 1px solid var(--panel-border); border-radius: 20px; font-size: 14px; color: #fff; z-index: 300; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.turn-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 6px 16px; background: rgba(212,168,67,0.9); border-radius: 20px; font-size: 14px; font-weight: 700; color: #1a1a1a; z-index: 5; animation: bounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 .loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; }
 .loader-spin { width: 48px; height: 48px; border: 3px solid rgba(212,168,67,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes popIn { from { opacity:0; transform: scale(0.7); } to { opacity:1; transform: scale(1); } }
-@keyframes bounceIn { from { opacity:0; transform: translateX(-50%) scale(0.8); } to { opacity:1; transform: translateX(-50%) scale(1); } }
-@keyframes pulseGold { 0%,100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.4); } 50% { box-shadow: 0 0 0 6px rgba(212,168,67,0); } }
-@keyframes glowGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(80,200,120,0.5); } 50% { box-shadow: 0 0 8px 3px rgba(80,200,120,0.3); } }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes winnerPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2); } }
-.winner-animation { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: gold; text-shadow: 0 0 20px rgba(255,215,0,0.8); z-index: 600; animation: winnerPulse 1s ease-out; pointer-events: none; }
 </style>
 </head>
 <body class="theme-classic tile-style-classic">
@@ -282,6 +366,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   <div class="opponents-area" id="opponents-area"></div>
   <div class="board-area">
     <div class="board-table">
+      <div class="board-felt-pattern"></div>
       <div class="board-tiles" id="board-tiles"><div style="color:rgba(255,255,255,0.15);padding:20px">Первый ход...</div></div>
       <div class="board-ends" id="board-ends" style="display:none">
         <div class="end-badge">← <span id="end-left">—</span></div>
@@ -343,24 +428,18 @@ html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-sy
   </div>
 </div>
 
-<!-- ВЫБОР КОСТИ ИЗ БОНЕЯРДА (ЗАКРЫТЫЕ КОСТИ) -->
 <div class="boneyard-selector" id="boneyard-selector">
-  <div style="text-align:center; margin-bottom:15px">
-    <h3>🎴 Выберите кость</h3>
-    <p style="font-size:12px; color:rgba(255,255,255,0.5)">Нажмите на закрытую кость, чтобы взять</p>
-  </div>
+  <div style="text-align:center; margin-bottom:15px"><h3>🎴 Выберите кость</h3><p style="font-size:12px; color:rgba(255,255,255,0.5)">Нажмите на закрытую кость, чтобы взять</p></div>
   <div id="boneyard-tiles" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px"></div>
   <button onclick="closeBoneyardSelector()" style="width:100%; margin-top:15px; padding:10px; background:var(--gold); border:none; border-radius:10px; cursor:pointer">Отмена</button>
 </div>
 
-<!-- МАГАЗИН -->
 <div class="shop-panel" id="shop-panel">
   <div style="display:flex; justify-content:space-between; margin-bottom:10px"><h3>🃏 Магазин костей</h3><button onclick="closeShop()" style="background:none; border:none; color:white; font-size:20px">✕</button></div>
   <div id="shop-tiles" style="display:flex; flex-wrap:wrap; justify-content:center; max-height:200px; overflow-y:auto"></div>
   <div style="margin-top:10px; text-align:center"><button onclick="buyTile()" class="btn btn-primary">Купить кость (1 очко)</button></div>
 </div>
 
-<!-- НАСТРОЙКИ -->
 <div class="settings-btn" onclick="toggleSettings()">⚙️</div>
 <div class="settings-panel" id="settings-panel">
   <h3 style="color:var(--gold); text-align:center; margin-bottom:15px">Настройки</h3>
@@ -414,20 +493,91 @@ function playSoundEffect(type) {
       g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
       o.start(now); o.stop(now + 0.15);
     } else if (type === 'win') {
-      [523, 659, 784].forEach((freq, i) => {
+      [523, 659, 784, 1047].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
         osc.frequency.value = freq;
         const t = now + i * 0.12;
         gain.gain.setValueAtTime(0.2, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-        osc.start(t); osc.stop(t + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.start(t); osc.stop(t + 0.35);
       });
     }
   } catch(e) {}
 }
 function testSound() { playSoundEffect('place'); }
+
+// ===== АНИМАЦИИ =====
+function animateFlyingTile(startElement, endElement, tileData, onComplete) {
+  const startRect = startElement.getBoundingClientRect();
+  const endRect = endElement.getBoundingClientRect();
+  
+  const flyingTile = document.createElement('div');
+  flyingTile.className = 'domino-tile tile-hand flying-tile fly-start';
+  flyingTile.style.position = 'fixed';
+  flyingTile.style.left = startRect.left + 'px';
+  flyingTile.style.top = startRect.top + 'px';
+  flyingTile.style.width = startRect.width + 'px';
+  flyingTile.style.height = startRect.height + 'px';
+  flyingTile.style.zIndex = '1000';
+  flyingTile.style.transition = 'all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)';
+  
+  // Копируем содержимое кости
+  const originalContent = startElement.cloneNode(true);
+  flyingTile.innerHTML = originalContent.innerHTML;
+  flyingTile.style.background = getComputedStyle(startElement).background;
+  flyingTile.style.border = getComputedStyle(startElement).border;
+  
+  document.body.appendChild(flyingTile);
+  
+  setTimeout(() => {
+    flyingTile.style.left = endRect.left + 'px';
+    flyingTile.style.top = endRect.top + 'px';
+    flyingTile.style.width = endRect.width + 'px';
+    flyingTile.style.height = endRect.height + 'px';
+    flyingTile.classList.add('fly-end');
+  }, 10);
+  
+  setTimeout(() => {
+    flyingTile.remove();
+    if (onComplete) onComplete();
+  }, 450);
+}
+
+function animateScoreUpdate(element, newValue) {
+  element.classList.add('score-update');
+  element.textContent = newValue;
+  setTimeout(() => element.classList.remove('score-update'), 400);
+}
+
+function animateButtonPress(button) {
+  button.classList.add('btn-pulse');
+  setTimeout(() => button.classList.remove('btn-pulse'), 300);
+}
+
+function animateOpponentMove(opponentCard) {
+  opponentCard.classList.add('opponent-move');
+  setTimeout(() => opponentCard.classList.remove('opponent-move'), 600);
+}
+
+function spawnConfetti() {
+  const colors = ['#d4a843', '#f0c862', '#50c878', '#e05050', '#6ab4f5', '#ffffff'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const conf = document.createElement('div');
+      conf.className = 'confetti';
+      conf.style.left = Math.random() * 100 + '%';
+      conf.style.background = colors[Math.floor(Math.random() * colors.length)];
+      conf.style.width = (5 + Math.random() * 8) + 'px';
+      conf.style.height = (5 + Math.random() * 8) + 'px';
+      conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      conf.style.animationDuration = (1 + Math.random() * 2) + 's';
+      document.body.appendChild(conf);
+      conf.addEventListener('animationend', () => conf.remove());
+    }, i * 25);
+  }
+}
 
 // ===== ТЕМЫ =====
 function changeTheme(theme) {
@@ -507,13 +657,20 @@ function connectSocket() {
   socket.on('tableState', (ts) => { state.tableState = ts; if (ts.status === 'waiting') renderWaiting(ts); else if (ts.status === 'playing') renderGame(ts); });
   socket.on('playerJoined', ({ player }) => { showToast(`${player.name} присоединился!`); vibrate(50); });
   socket.on('gameStarted', (ts) => { state.tableState = ts; showScreen('game-screen'); renderGame(ts); vibrate([50,30,50]); showToast('🎲 Игра началась!'); });
-  socket.on('tilePlayed', () => { playSoundEffect('place'); vibrate(30); });
+  socket.on('tilePlayed', ({ playerId }) => {
+    playSoundEffect('place');
+    vibrate(30);
+    if (playerId !== state.player.id) {
+      const opponentCard = document.querySelector(`.opponent-card[data-player-id="${playerId}"]`);
+      if (opponentCard) animateOpponentMove(opponentCard);
+    }
+  });
   socket.on('tileDrawn', ({ tile }) => { playSoundEffect('draw'); showToast(`Взята кость [${tile[0]}|${tile[1]}]`); });
   socket.on('playerLeft', () => { showToast('Игрок покинул стол'); });
   socket.on('gameOver', ({ winner, scores, reason, totalPips }) => {
     state.gamesPlayed++;
     const isWin = winner === state.player.id;
-    if (isWin) { playSoundEffect('win'); vibrate([100,50,100,50,200]); showWinnerAnimation(state.player.name, totalPips || 0); }
+    if (isWin) { playSoundEffect('win'); vibrate([100,50,100,50,200]); spawnConfetti(); showWinnerAnimation(state.player.name, totalPips || 0); }
     else { vibrate([200]); }
     showGameOver(winner, scores, reason);
   });
@@ -588,19 +745,25 @@ function canPlayTile(tile, boardEnds) {
   if (!boardEnds) return true;
   return tile[0]===boardEnds.left || tile[1]===boardEnds.left || tile[0]===boardEnds.right || tile[1]===boardEnds.right;
 }
+
 function renderGame(ts) {
   state.tableState = ts;
   state.isMyTurn = ts.currentPlayerId === state.player.id;
+  
   const topbar = document.getElementById('game-topbar');
-  topbar.innerHTML = ts.players.map(p => `<div class="score-chip ${p.id===ts.currentPlayerId?'active':''}"><div class="dot"></div><span style="max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${escHtml(p.name)}</span><span style="color:var(--gold-light)">${ts.scores[p.id]||0}</span></div>`).join('') + `<div class="boneyard-counter">🎴 ${ts.boneyardCount}</div>`;
+  topbar.innerHTML = ts.players.map(p => `<div class="score-chip ${p.id===ts.currentPlayerId?'active':''}" data-player-id="${p.id}"><div class="dot"></div><span>${escHtml(p.name)}</span><span class="score-value" style="color:var(--gold-light)">${ts.scores[p.id] || 0}</span></div>`).join('') + `<div class="boneyard-counter">🎴 ${ts.boneyardCount}</div>`;
+  
   const oppsArea = document.getElementById('opponents-area');
   const opps = ts.players.filter(p=>p.id!==state.player.id);
-  oppsArea.innerHTML = opps.map(p=>`<div class="opponent-card ${p.id===ts.currentPlayerId?'active':''}"><div class="opp-avatar">${(p.avatar||p.name[0]).toString().slice(0,2)}</div><div class="opp-name">${escHtml(p.name)}</div><div class="opp-tiles">${Array(Math.min(p.handCount,8)).fill(0).map(()=>'<div class="mini-tile"></div>').join('')}</div><div class="opp-score">${ts.scores[p.id]||0} pts</div></div>`).join('');
+  oppsArea.innerHTML = opps.map(p=>`<div class="opponent-card ${p.id===ts.currentPlayerId?'active':''}" data-player-id="${p.id}"><div class="opp-avatar">${(p.avatar||p.name[0]).toString().slice(0,2)}</div><div class="opp-name">${escHtml(p.name)}</div><div class="opp-tiles">${Array(Math.min(p.handCount,8)).fill(0).map(()=>'<div class="mini-tile"></div>').join('')}</div><div class="opp-score">${ts.scores[p.id]||0} pts</div></div>`).join('');
+  
   renderBoard(ts.board, ts.boardEnds);
   renderHand(ts.myHand, ts);
+  
   const drawBtn = document.getElementById('draw-btn');
   const passBtn = document.getElementById('pass-btn');
   const shopBtn = document.getElementById('shop-btn');
+  
   if (state.isMyTurn) {
     const canPlay = ts.myHand.some(t=>canPlayTile(t,ts.boardEnds));
     drawBtn.disabled = !(!canPlay && ts.boneyardCount>0) || !ts.boardEnds;
@@ -614,6 +777,7 @@ function renderGame(ts) {
   }
   document.getElementById('my-count').textContent = ts.myHand.length;
 }
+
 function renderBoard(board, boardEnds) {
   const container = document.getElementById('board-tiles');
   const endsEl = document.getElementById('board-ends');
@@ -623,6 +787,7 @@ function renderBoard(board, boardEnds) {
   setTimeout(()=>container.scrollLeft=container.scrollWidth,50);
   if (boardEnds) { endsEl.style.display='flex'; document.getElementById('end-left').textContent=boardEnds.left; document.getElementById('end-right').textContent=boardEnds.right; }
 }
+
 function renderHand(hand, ts) {
   const container = document.getElementById('my-hand');
   container.innerHTML = '';
@@ -630,31 +795,91 @@ function renderHand(hand, ts) {
     const isSelected=idx===state.selectedTileIdx; 
     const isPlayable=state.isMyTurn && canPlayTile(tile,ts.boardEnds); 
     const el=createTileEl(tile[0],tile[1],'hand',false,isSelected,isPlayable); 
-    el.addEventListener('click',()=>selectTile(idx,tile,ts)); 
+    el.addEventListener('click',()=>selectTile(idx,tile,ts, el)); 
     container.appendChild(el); 
   });
 }
-function selectTile(idx, tile, ts) {
+
+function selectTile(idx, tile, ts, tileElement) {
   if (!state.isMyTurn) { showToast('Сейчас не ваш ход!'); return; }
-  if (!canPlayTile(tile, ts.boardEnds)) { showToast('Эту кость нельзя поставить!'); vibrate(30); return; }
+  if (!canPlayTile(tile, ts.boardEnds)) { showToast('Эту кость нельзя поставить!'); vibrate(30); tileElement.classList.add('shake'); setTimeout(()=>tileElement.classList.remove('shake'), 300); return; }
   playSoundEffect('draw');
   state.selectedTileIdx = idx;
   renderHand(ts.myHand, ts);
-  if (!ts.boardEnds) { confirmPlay('right'); return; }
+  if (!ts.boardEnds) { confirmPlayWithAnimation('right', tileElement); return; }
   const fitsLeft = tile[0]===ts.boardEnds.left || tile[1]===ts.boardEnds.left;
   const fitsRight = tile[0]===ts.boardEnds.right || tile[1]===ts.boardEnds.right;
-  if (fitsLeft && !fitsRight) { confirmPlay('left'); return; }
-  if (fitsRight && !fitsLeft) { confirmPlay('right'); return; }
+  if (fitsLeft && !fitsRight) { confirmPlayWithAnimation('left', tileElement); return; }
+  if (fitsRight && !fitsLeft) { confirmPlayWithAnimation('right', tileElement); return; }
   document.getElementById('left-end-label').textContent = `← ${ts.boardEnds.left}`;
   document.getElementById('right-end-label').textContent = `${ts.boardEnds.right} →`;
   document.getElementById('side-modal').classList.add('active');
+  window.pendingTileElement = tileElement;
 }
-function closeSideModal() { document.getElementById('side-modal').classList.remove('active'); state.selectedTileIdx = null; if (state.tableState) renderHand(state.tableState.myHand, state.tableState); }
-function confirmPlay(side) { document.getElementById('side-modal').classList.remove('active'); if (state.selectedTileIdx===null) return; state.socket.emit('playTile', { tableId: state.tableId, tileIdx: state.selectedTileIdx, side }); state.selectedTileIdx = null; }
+
+function confirmPlayWithAnimation(side, tileElement) {
+  const boardContainer = document.getElementById('board-tiles');
+  const boardRect = boardContainer.getBoundingClientRect();
+  const tileRect = tileElement.getBoundingClientRect();
+  
+  // Анимация полета
+  const flyingTile = tileElement.cloneNode(true);
+  flyingTile.style.position = 'fixed';
+  flyingTile.style.left = tileRect.left + 'px';
+  flyingTile.style.top = tileRect.top + 'px';
+  flyingTile.style.width = tileRect.width + 'px';
+  flyingTile.style.height = tileRect.height + 'px';
+  flyingTile.style.zIndex = '1000';
+  flyingTile.style.transition = 'all 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)';
+  flyingTile.style.pointerEvents = 'none';
+  document.body.appendChild(flyingTile);
+  
+  // Скрываем оригинал
+  tileElement.style.opacity = '0';
+  tileElement.style.transition = 'opacity 0.2s';
+  
+  setTimeout(() => {
+    const targetX = boardRect.left + boardRect.width / 2;
+    const targetY = boardRect.top + boardRect.height / 2;
+    flyingTile.style.left = (targetX - tileRect.width / 2) + 'px';
+    flyingTile.style.top = (targetY - tileRect.height / 2) + 'px';
+    flyingTile.style.transform = 'scale(0.8) rotate(10deg)';
+  }, 10);
+  
+  setTimeout(() => {
+    flyingTile.remove();
+    tileElement.remove();
+    state.socket.emit('playTile', { tableId: state.tableId, tileIdx: state.selectedTileIdx, side });
+    state.selectedTileIdx = null;
+  }, 450);
+}
+
+function closeSideModal() { 
+  document.getElementById('side-modal').classList.remove('active'); 
+  state.selectedTileIdx = null; 
+  if (state.tableState) renderHand(state.tableState.myHand, state.tableState);
+  if (window.pendingTileElement) {
+    window.pendingTileElement.style.opacity = '1';
+    window.pendingTileElement = null;
+  }
+}
+
+function confirmPlay(side) {
+  document.getElementById('side-modal').classList.remove('active');
+  if (state.selectedTileIdx===null) return;
+  if (window.pendingTileElement) {
+    animateButtonPress(window.pendingTileElement);
+    window.pendingTileElement.style.opacity = '1';
+    window.pendingTileElement = null;
+  }
+  state.socket.emit('playTile', { tableId: state.tableId, tileIdx: state.selectedTileIdx, side });
+  state.selectedTileIdx = null;
+}
+
 function drawTile() { if (state.socket) state.socket.emit('drawTile', { tableId: state.tableId }); }
 function passTurn() { if (state.socket) state.socket.emit('passTurn', { tableId: state.tableId }); }
 
-// ===== ВЫБОР КОСТИ ИЗ БОНЕЯРДА (ЗАКРЫТЫЕ) =====
+// ===== ВЫБОР КОСТИ ИЗ БОНЕЯРДА =====
 function openBoneyardSelector() {
   if (!state.tableState || state.tableState.status !== 'playing') { showToast('Игра не активна'); return; }
   if (!state.isMyTurn) { showToast('Сейчас не ваш ход!'); return; }
@@ -666,18 +891,22 @@ function openBoneyardSelector() {
   tilesDiv.innerHTML = '';
   for (let i = 0; i < Math.min(state.tableState.boneyardCount, 12); i++) {
     const backTile = document.createElement('div');
-    backTile.className = 'domino-tile tile-hand';
+    backTile.className = 'domino-tile tile-hand boneyard-tile';
     backTile.style.background = 'repeating-linear-gradient(45deg, #555, #555 10px, #777 10px, #777 20px)';
     backTile.style.border = '2px solid #999';
     backTile.style.cursor = 'pointer';
     backTile.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:20px">?</div>';
     backTile.onclick = (function(idx) { return function() { selectBoneyardTile(idx); }; })(i);
+    backTile.onmouseenter = () => { backTile.style.transform = 'scale(1.1)'; backTile.style.transition = 'transform 0.2s'; };
+    backTile.onmouseleave = () => { backTile.style.transform = 'scale(1)'; };
     tilesDiv.appendChild(backTile);
   }
   selector.classList.add('active');
 }
 function selectBoneyardTile(index) {
   closeBoneyardSelector();
+  const drawBtn = document.getElementById('draw-btn');
+  animateButtonPress(drawBtn);
   drawTile();
   showToast('Кость взята из бонеярда!');
 }
@@ -697,6 +926,8 @@ function openShop() {
     const tileEl = createTileEl(dummyTile[0], dummyTile[1], 'hand');
     tileEl.classList.add('shop-tile');
     tileEl.onclick = (() => { document.querySelectorAll('.shop-tile').forEach(t=>t.classList.remove('selected')); tileEl.classList.add('selected'); window.selectedShopTile = dummyTile; });
+    tileEl.onmouseenter = () => { tileEl.style.transform = 'scale(1.1)'; };
+    tileEl.onmouseleave = () => { if(!tileEl.classList.contains('selected')) tileEl.style.transform = 'scale(1)'; };
     shopDiv.appendChild(tileEl);
   }
 }
@@ -704,6 +935,8 @@ function closeShop() { document.getElementById('shop-panel').classList.remove('a
 function buyTile() {
   if (!window.selectedShopTile) { showToast('Выберите кость'); return; }
   if (state.tableState.boneyardCount === 0) { showToast('В магазине нет костей!'); closeShop(); return; }
+  const buyBtn = document.querySelector('#shop-panel .btn-primary');
+  animateButtonPress(buyBtn);
   state.socket.emit('drawTile', { tableId: state.tableId });
   showToast('Куплена кость из магазина!');
   playSoundEffect('draw');
@@ -717,8 +950,7 @@ function showGameOver(winnerId, scores, reason) {
   const winnerName = ts?.players.find(p=>p.id===winnerId)?.name || 'Кто-то';
   document.getElementById('gameover-icon').textContent = isWin ? '🏆' : '😔';
   document.getElementById('gameover-title').textContent = isWin ? 'Победа!' : 'Игра окончена';
-  let reasonText = reason === 'blocked' ? 'Рыба! Победитель с наименьшим количеством очков' : `Победил ${winnerName}`;
-  if (reason === 'score101') reasonText = 'Игрок набрал 101 очко! Партия окончена';
+  let reasonText = reason === 'blocked' ? 'Рыба! Победитель с наименьшим количеством очков' : (reason === 'score101' ? 'Игрок набрал 101 очко! Партия окончена' : `Победил ${winnerName}`);
   document.getElementById('gameover-subtitle').textContent = reasonText;
   const scoresList = document.getElementById('gameover-scores');
   if (ts) {
@@ -762,6 +994,7 @@ window.openShop = openShop; window.closeShop = closeShop; window.buyTile = buyTi
 window.toggleSettings = toggleSettings; window.changeTheme = changeTheme; window.changeTileStyle = changeTileStyle;
 window.testSound = testSound; window.showNameModal = showNameModal; window.savePlayerName = savePlayerName;
 window.openBoneyardSelector = openBoneyardSelector; window.closeBoneyardSelector = closeBoneyardSelector;
+window.animateButtonPress = animateButtonPress;
 </script>
 </body>
 </html>
