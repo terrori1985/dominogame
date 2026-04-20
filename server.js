@@ -19,7 +19,6 @@ app.get('/', (req, res) => {
 
 // ============ ИГРОВАЯ ЛОГИКА ============
 const tables = new Map();
-const players = new Map();
 
 function createDominoSet() {
   const tiles = [];
@@ -58,6 +57,7 @@ function createTable(hostId, hostName, maxPlayers = 4) {
     chatHistory: []
   };
   tables.set(tableId, table);
+  console.log(`Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -74,7 +74,6 @@ function dealTiles(table) {
   table.boardEnds = null;
   table.passCount = 0;
 
-  // Находим игрока с самым большим дублем для первого хода
   let startIdx = 0;
   let highestDouble = -1;
   table.players.forEach((p, i) => {
@@ -206,7 +205,15 @@ function calculateRoundScores(table, winnerId) {
 function checkGameEnd(table) {
   for (const player of table.players) {
     if ((table.scores[player.id] || 0) >= 101) {
-      return { gameEnd: true, winner: Object.keys(table.scores).reduce((a,b) => table.scores[a] > table.scores[b] ? a : b) };
+      let winner = null;
+      let maxScore = -1;
+      for (const p of table.players) {
+        if ((table.scores[p.id] || 0) > maxScore) {
+          maxScore = table.scores[p.id];
+          winner = p.id;
+        }
+      }
+      return { gameEnd: true, winner };
     }
   }
   return { gameEnd: false };
@@ -233,8 +240,7 @@ function getTableState(table, playerId) {
     })),
     myHand: player.hand || [],
     scores: table.scores,
-    hostId: table.hostId,
-    chatHistory: table.chatHistory.slice(-50)
+    hostId: table.hostId
   };
 }
 
@@ -251,10 +257,12 @@ function getPublicTable(table) {
 // ============ SOCKET.IO ============
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
+  let currentPlayer = null;
   
   socket.on('register', ({ name, avatar }) => {
-    players.set(socket.id, { id: socket.id, name: name || 'Игрок', avatar: avatar || '🎲' });
+    currentPlayer = { id: socket.id, name: name || 'Игрок', avatar: avatar || '🎲' };
     socket.emit('registered', { id: socket.id });
+    console.log(`Player registered: ${name}`);
   });
   
   socket.on('getTables', () => {
@@ -265,11 +273,13 @@ io.on('connection', (socket) => {
   });
   
   socket.on('createTable', ({ maxPlayers }) => {
-    const player = players.get(socket.id);
-    if (!player) return;
+    if (!currentPlayer) {
+      socket.emit('error', 'Сначала зарегистрируйтесь');
+      return;
+    }
     
-    const table = createTable(socket.id, player.name, maxPlayers || 4);
-    table.players.push({ ...player, hand: [], handCount: 0 });
+    const table = createTable(socket.id, currentPlayer.name, maxPlayers || 4);
+    table.players.push({ ...currentPlayer, hand: [], handCount: 0 });
     table.scores[socket.id] = 0;
     
     socket.join(table.id);
@@ -284,9 +294,7 @@ io.on('connection', (socket) => {
     if (!table) { socket.emit('error', 'Стол не найден'); return; }
     if (table.status !== 'waiting') { socket.emit('error', 'Игра уже началась'); return; }
     if (table.players.length >= table.maxPlayers) { socket.emit('error', 'Стол полон'); return; }
-    
-    const player = players.get(socket.id);
-    if (!player) return;
+    if (!currentPlayer) { socket.emit('error', 'Сначала зарегистрируйтесь'); return; }
     
     if (table.players.find(p => p.id === socket.id)) {
       socket.join(tableId);
@@ -294,16 +302,12 @@ io.on('connection', (socket) => {
       return;
     }
     
-    table.players.push({ ...player, hand: [], handCount: 0 });
+    table.players.push({ ...currentPlayer, hand: [], handCount: 0 });
     if (!table.scores[socket.id]) table.scores[socket.id] = 0;
     socket.join(tableId);
     
-    io.to(tableId).emit('playerJoined', { player: { id: player.id, name: player.name } });
+    io.to(tableId).emit('playerJoined', { player: { id: currentPlayer.id, name: currentPlayer.name } });
     io.to(tableId).emit('tableState', getTableState(table, socket.id));
-    
-    if (table.chatHistory.length) {
-      socket.emit('chatHistory', table.chatHistory);
-    }
     
     broadcastTables();
   });
@@ -443,12 +447,13 @@ io.on('connection', (socket) => {
   });
   
   socket.on('disconnect', () => {
-    tables.forEach((table, tableId) => {
+    console.log(`Client disconnected: ${socket.id}`);
+    for (const [tableId, table] of tables) {
       if (table.players.some(p => p.id === socket.id)) {
         handleLeave(socket, tableId);
+        break;
       }
-    });
-    players.delete(socket.id);
+    }
   });
   
   function handleLeave(socket, tableId) {
@@ -460,6 +465,7 @@ io.on('connection', (socket) => {
     
     if (table.players.length === 0) {
       tables.delete(tableId);
+      console.log(`Table ${tableId} deleted`);
     } else {
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
