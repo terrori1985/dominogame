@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🎲 Domino</title>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
@@ -50,7 +50,7 @@ body {
 .btn { flex: 1; padding: 14px; border-radius: 40px; font-weight: bold; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; }
 .btn-primary { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: #1a2a1a; }
 .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
-.search-bar input { flex: 1; background: #00000066; border: 1px solid var(--gold); border-radius: 40px; padding: 10px; color: white; }
+.search-bar input { flex: 1; background: #00000066; border: 1px solid var(--gold); border-radius: 40px; padding: 10px; color: white; outline: none; }
 
 /* ОЖИДАНИЕ */
 .waiting-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; padding: 24px; }
@@ -113,34 +113,50 @@ body {
 .selected-tile { transform: translateY(-18px) scale(1.05); border: 3px solid #ffcc44 !important; }
 
 /* ЧАТ */
-.chat-bubble { position: fixed; bottom: 100px; right: 16px; background: var(--gold-dark); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; font-size: 24px; }
-.chat-container { position: fixed; bottom: 0; right: 0; width: 320px; background: #1a2a1ad9; backdrop-filter: blur(16px); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: 0.25s; z-index: 210; border-top: 2px solid var(--gold); }
+.chat-bubble { position: fixed; bottom: 20px; right: 16px; background: var(--gold-dark); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; font-size: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+.chat-container { position: fixed; bottom: 0; right: 0; width: 320px; background: #1a2a1ad9; backdrop-filter: blur(16px); border-radius: 20px 20px 0 0; transform: translateY(100%); transition: 0.3s; z-index: 210; border-top: 2px solid var(--gold); }
 .chat-container.open { transform: translateY(0); }
+.chat-messages { height: 250px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.chat-message { padding: 8px 12px; border-radius: 16px; max-width: 85%; word-wrap: break-word; }
+.chat-message.my { background: var(--gold); color: #1a2a1a; align-self: flex-end; }
+.chat-message.other { background: rgba(255,255,255,0.15); align-self: flex-start; }
+.chat-sender { font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.8; }
+.chat-input-area { display: flex; padding: 12px; gap: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+.chat-input-area input { flex: 1; background: #2a2a2a; border: none; border-radius: 20px; padding: 10px; color: white; outline: none; }
+.chat-input-area button { background: var(--gold); border: none; border-radius: 20px; padding: 10px 16px; cursor: pointer; font-weight: bold; }
+
 .settings-btn { position: fixed; bottom: 20px; left: 16px; background: #2a2a1a; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 100; cursor: pointer; border: 1px solid var(--gold); }
-.toast { position: fixed; bottom: 30%; left: 50%; transform: translateX(-50%); background: black; color: gold; padding: 8px 18px; border-radius: 40px; opacity: 0; transition: 0.2s; z-index: 500; white-space: nowrap; }
+.toast { position: fixed; bottom: 30%; left: 50%; transform: translateX(-50%); background: black; color: gold; padding: 8px 18px; border-radius: 40px; opacity: 0; transition: 0.2s; z-index: 500; white-space: nowrap; pointer-events: none; }
 .toast.show { opacity: 1; bottom: 40%; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 300; display: none; }
 .modal-card { background: #1e3a2a; border-radius: 32px; padding: 24px; width: 80%; max-width: 320px; border: 1px solid gold; }
-.turn-banner { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); background: gold; color: black; padding: 6px 20px; border-radius: 40px; font-weight: bold; white-space: nowrap; z-index: 30; }
-.winner-animation { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: gold; z-index: 400; animation: fadePop 0.6s ease-out; pointer-events: none; }
+.modal-card input, .modal-card select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 20px; border: none; background: #2a2a2a; color: white; }
+.modal-card button { padding: 10px 20px; border-radius: 20px; border: none; background: var(--gold); font-weight: bold; cursor: pointer; margin: 5px; }
+.turn-banner { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); background: gold; color: black; padding: 6px 20px; border-radius: 40px; font-weight: bold; white-space: nowrap; z-index: 30; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+.winner-animation { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: bold; color: gold; text-shadow: 0 0 20px orange; z-index: 400; animation: fadePop 0.6s ease-out; pointer-events: none; }
 @keyframes fadePop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 </style>
 </head>
 <body>
 
+<!-- ЛОББИ -->
 <div id="lobby-screen" class="screen active">
   <div class="lobby-container">
     <div class="lobby-header">
       <h1>🎲 DOMINO</h1>
       <div class="player-badge" onclick="showNameModal()">
-        <span id="lobby-avatar">🎲</span><span id="lobby-name">Игрок</span> ✎
+        <span id="lobby-avatar">🎲</span>
+        <span id="lobby-name">Игрок</span> ✎
       </div>
     </div>
     <div class="search-bar">
-      <input type="text" id="search-input" placeholder="Поиск стола...">
-      <button onclick="refreshTables()" style="background:#00000066; border:1px solid gold; border-radius:40px; width:44px;">↻</button>
+      <input type="text" id="search-input" placeholder="Поиск стола..." oninput="filterTables()">
+      <button onclick="refreshTables()" style="background:#00000066; border:1px solid gold; border-radius:40px; width:44px; cursor:pointer;">↻</button>
     </div>
-    <div class="table-grid" id="tables-list"><div style="text-align:center; padding:40px;">Загрузка...</div></div>
+    <div class="table-grid" id="tables-list">
+      <div style="text-align:center; padding:40px;">Загрузка столов...</div>
+    </div>
     <div class="btn-group">
       <button class="btn" onclick="showCreateModal()">+ Создать стол</button>
       <button class="btn btn-primary" onclick="quickJoin()">⚡ Быстрая игра</button>
@@ -148,9 +164,10 @@ body {
   </div>
 </div>
 
+<!-- ОЖИДАНИЕ -->
 <div id="waiting-screen" class="screen">
   <div style="padding:20px; display:flex; align-items:center; gap:12px; background:#00000055;">
-    <button onclick="leaveTable()" style="background:none; border:1px solid gold; border-radius:30px; padding:8px 16px;">← Назад</button>
+    <button onclick="leaveTable()" style="background:none; border:1px solid gold; border-radius:30px; padding:8px 16px; cursor:pointer;">← Назад</button>
     <h3>Ожидание игроков</h3>
     <span id="table-id-display" style="background:#00000099; padding:4px 12px; border-radius:20px;">—</span>
   </div>
@@ -161,6 +178,7 @@ body {
   </div>
 </div>
 
+<!-- ИГРОВОЙ СТОЛ -->
 <div id="game-screen" class="screen">
   <div class="game-layout">
     <div class="top-scores" id="top-scores-bar"></div>
@@ -183,23 +201,61 @@ body {
   </div>
 </div>
 
-<div class="chat-bubble" onclick="toggleChat()">💬<span id="chat-badge" style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:18px; font-size:10px; display:none;">0</span></div>
+<!-- ЧАТ -->
+<div class="chat-bubble" onclick="toggleChat()">💬<span id="chat-badge" style="position:absolute; top:-5px; right:-5px; background:red; border-radius:50%; width:18px; height:18px; font-size:10px; display:none; align-items:center; justify-content:center;">0</span></div>
 <div class="chat-container" id="chat-container">
-  <div style="padding:10px; border-bottom:1px solid gold; display:flex; justify-content:space-between;"><span>💬 Чат</span><span onclick="toggleChat()" style="cursor:pointer;">✖</span></div>
-  <div id="chat-messages" style="height:200px; overflow-y:auto; padding:8px; font-size:12px;"></div>
-  <div style="display:flex; gap:6px; padding:8px;"><input id="chat-input" placeholder="Сообщение..." style="flex:1; background:#2a2a2a; border:none; border-radius:20px; padding:8px; color:white;"><button onclick="sendChatMessage()" style="background:gold; border:none; border-radius:20px;">➤</button></div>
+  <div style="padding:12px; border-bottom:1px solid gold; display:flex; justify-content:space-between; font-weight:bold;">
+    <span>💬 Чат игры</span>
+    <span onclick="toggleChat()" style="cursor:pointer;">✖</span>
+  </div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Напишите сообщение..." onkeypress="handleChatKeyPress(event)">
+    <button onclick="sendChatMessage()">➤</button>
+  </div>
 </div>
 
+<!-- НАСТРОЙКИ -->
 <div class="settings-btn" onclick="toggleSettings()">⚙️</div>
 <div id="settings-panel" style="position:fixed; bottom:80px; left:16px; background:#1e2a1e; border-radius:20px; padding:16px; width:200px; z-index:300; display:none; border:1px solid gold;">
-  <select id="theme-select" onchange="changeTheme(this.value)"><option value="classic">Классика</option><option value="dark">Тёмный</option></select>
-  <label><input type="checkbox" id="sound-toggle" checked> Звуки</label>
-  <button onclick="toggleSettings()" style="margin-top:8px;">Закрыть</button>
+  <select id="theme-select" onchange="changeTheme(this.value)">
+    <option value="classic">Классика</option>
+    <option value="dark">Тёмный</option>
+  </select>
+  <div style="margin-top:10px;">
+    <label><input type="checkbox" id="sound-toggle" checked> Звуки</label>
+  </div>
+  <button onclick="toggleSettings()" style="margin-top:12px; width:100%; padding:8px; border-radius:20px; border:none; cursor:pointer;">Закрыть</button>
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="modal-overlay" id="name-modal"><div class="modal-card"><h3>Ваше имя</h3><input id="player-name-input" style="width:100%; padding:8px;"><div style="display:flex; gap:8px; margin-top:12px;"><button onclick="savePlayerName()">Сохранить</button><button onclick="closeModal('name-modal')">Отмена</button></div></div></div>
-<div class="modal-overlay" id="create-modal"><div class="modal-card"><h3>Новый стол</h3><select id="max-players"><option value="2">2 игрока</option><option value="3">3 игрока</option><option value="4">4 игрока</option></select><div style="margin-top:16px;"><button onclick="createTable()">Создать</button><button onclick="closeModal('create-modal')">Отмена</button></div></div></div>
+
+<!-- МОДАЛКИ -->
+<div class="modal-overlay" id="name-modal">
+  <div class="modal-card">
+    <h3>Ваше имя</h3>
+    <input id="player-name-input" placeholder="Введите имя">
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button onclick="savePlayerName()">Сохранить</button>
+      <button onclick="closeModal('name-modal')">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="create-modal">
+  <div class="modal-card">
+    <h3>Новый стол</h3>
+    <select id="max-players">
+      <option value="2">2 игрока</option>
+      <option value="3">3 игрока</option>
+      <option value="4" selected>4 игрока</option>
+    </select>
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button onclick="createTable()">Создать</button>
+      <button onclick="closeModal('create-modal')">Отмена</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ============ ГЛОБАЛЬНОЕ СОСТОЯНИЕ ============
@@ -243,6 +299,17 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============ ЛОББИ ============
 function showNameModal() {
   document.getElementById('player-name-input').value = state.player.name;
   document.getElementById('name-modal').classList.add('active');
@@ -259,6 +326,29 @@ function savePlayerName() {
 
 function refreshTables() {
   if (state.socket) state.socket.emit('getTables');
+}
+
+function filterTables() {
+  const query = document.getElementById('search-input').value.toLowerCase();
+  const filtered = state.allTables.filter(t => t.hostName.toLowerCase().includes(query) || t.id.toLowerCase().includes(query));
+  renderTables(filtered);
+}
+
+function renderTables(tables) {
+  const container = document.getElementById('tables-list');
+  if (!tables || tables.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:40px;">Нет столов. Создайте новый!</div>';
+    return;
+  }
+  container.innerHTML = tables.map(t => `
+    <div class="table-card" onclick="joinTable('${t.id}')">
+      <div class="table-icon">🎲</div>
+      <div>
+        <b>${escapeHtml(t.hostName)}'s стол</b>
+        <div>${t.playerCount}/${t.maxPlayers} игроков</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function showCreateModal() {
@@ -292,6 +382,7 @@ function leaveTable() {
   if (state.socket && state.tableId) state.socket.emit('leaveTable', { tableId: state.tableId });
   state.tableId = null;
   state.tableState = null;
+  state.selectedTileIdx = null;
   showScreen('lobby-screen');
   refreshTables();
 }
@@ -306,57 +397,6 @@ function drawFromBoneyard() {
 
 function passTurn() {
   if (state.socket && state.tableId) state.socket.emit('passTurn', { tableId: state.tableId });
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function changeTheme(t) {
-  document.body.style.setProperty('--felt', t === 'dark' ? '#1a2a1a' : '#1a472a');
-}
-
-function toggleSettings() {
-  const p = document.getElementById('settings-panel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-function toggleChat() {
-  const c = document.getElementById('chat-container');
-  c.classList.toggle('open');
-  if (c.classList.contains('open')) document.getElementById('chat-badge').style.display = 'none';
-}
-
-function sendChatMessage() {
-  const inp = document.getElementById('chat-input');
-  const msg = inp.value.trim();
-  if (msg && state.socket && state.tableId) {
-    state.socket.emit('chatMessage', { tableId: state.tableId, message: msg, playerName: state.player.name });
-    inp.value = '';
-    addChatMsg(state.player.name, msg, true);
-  }
-}
-
-function addChatMsg(sender, text, isMe) {
-  const container = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.style.marginBottom = '6px';
-  div.style.background = isMe ? '#d4a84333' : '#2a2a2a';
-  div.style.borderRadius = '16px';
-  div.style.padding = '6px 10px';
-  div.innerHTML = `<b>${escapeHtml(sender)}:</b> ${escapeHtml(text)}`;
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-  if (!document.getElementById('chat-container').classList.contains('open') && !isMe) {
-    const badge = document.getElementById('chat-badge');
-    badge.style.display = 'flex';
-    badge.innerText = (parseInt(badge.innerText) || 0) + 1;
-  }
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ============ ОТРИСОВКА КОСТЕЙ ============
@@ -413,7 +453,7 @@ function canPlayTile(tile, ends) {
 
 function onSelectTile(idx, tile, ts) {
   if (!state.isMyTurn) { showToast('Не ваш ход'); return; }
-  if (!canPlayTile(tile, ts.boardEnds)) { showToast('❌ Нельзя поставить'); return; }
+  if (!canPlayTile(tile, ts.boardEnds)) { showToast('❌ Нельзя поставить эту кость'); return; }
   
   state.selectedTileIdx = idx;
   renderGame(ts);
@@ -425,7 +465,7 @@ function onSelectTile(idx, tile, ts) {
   if (leftOk && !rightOk) confirmPlay('left');
   else if (rightOk && !leftOk) confirmPlay('right');
   else {
-    const side = confirm(`Куда поставить? Влево (${ends?.left}) или Вправо (${ends?.right})`) ? 'left' : 'right';
+    const side = confirm(`Куда поставить?\nВлево (${ends?.left})\nВправо (${ends?.right})`) ? 'left' : 'right';
     confirmPlay(side);
   }
 }
@@ -438,20 +478,43 @@ function confirmPlay(side) {
   }
 }
 
-// ============ ОТРИСОВКА ИГРОВОГО ЭКРАНА ============
+// ============ ОТРИСОВКА ЭКРАНОВ ============
+function renderWaiting(ts) {
+  const grid = document.getElementById('players-grid');
+  const isHost = (ts.hostId === state.player.id);
+  const startBtn = document.getElementById('start-btn');
+  startBtn.disabled = !(isHost && ts.players.length >= 2);
+  
+  grid.innerHTML = ts.players.map(p => `
+    <div class="player-slot">
+      ${escapeHtml(p.name)} ${p.id === ts.hostId ? '👑' : ''}
+    </div>
+  `).join('');
+  
+  for (let i = ts.players.length; i < ts.maxPlayers; i++) {
+    grid.innerHTML += `<div class="player-slot" style="opacity:0.6;">Ожидание игрока...</div>`;
+  }
+}
+
 function renderGame(ts) {
   state.tableState = ts;
   state.isMyTurn = (ts.currentPlayerId === state.player.id);
   
+  // Верхняя панель с очками
   const topBar = document.getElementById('top-scores-bar');
   topBar.innerHTML = '';
   ts.players.forEach(p => {
     const activeClass = (p.id === ts.currentPlayerId) ? 'active-turn' : '';
-    topBar.innerHTML += `<div class="score-badge ${activeClass}"><span>${escapeHtml(p.name)}</span><span class="score-value">${ts.scores[p.id] || 0}</span></div>`;
+    topBar.innerHTML += `
+      <div class="score-badge ${activeClass}">
+        <span>${escapeHtml(p.name)}</span>
+        <span class="score-value">${ts.scores[p.id] || 0}</span>
+      </div>
+    `;
   });
   topBar.innerHTML += `<div style="background:rgba(0,0,0,0.5); border-radius:60px; padding:6px 18px;">🎴 ${ts.boneyardCount}</div>`;
   
-  // Доска
+  // Доска с костями
   const boardDiv = document.getElementById('board-tiles');
   boardDiv.innerHTML = '';
   if (ts.board && ts.board.length) {
@@ -489,12 +552,13 @@ function renderGame(ts) {
   });
   document.getElementById('my-hand-count').innerText = ts.myHand.length;
   
+  // Кнопки действий
   const drawBtn = document.getElementById('draw-btn');
   const passBtn = document.getElementById('pass-btn');
   if (state.isMyTurn) {
-    const canPlay = ts.myHand.some(t => canPlayTile(t, ts.boardEnds));
-    drawBtn.disabled = !(!canPlay && ts.boneyardCount > 0);
-    passBtn.disabled = !(ts.boneyardCount === 0 && !canPlay);
+    const hasPlayable = ts.myHand.some(t => canPlayTile(t, ts.boardEnds));
+    drawBtn.disabled = !(!hasPlayable && ts.boneyardCount > 0);
+    passBtn.disabled = !(ts.boneyardCount === 0 && !hasPlayable);
     document.getElementById('turn-banner').style.display = 'block';
   } else {
     drawBtn.disabled = true;
@@ -503,24 +567,66 @@ function renderGame(ts) {
   }
 }
 
-function renderWaiting(ts) {
-  const grid = document.getElementById('players-grid');
-  const isHost = (ts.hostId === state.player.id);
-  const startBtn = document.getElementById('start-btn');
-  startBtn.disabled = !(isHost && ts.players.length >= 2);
-  
-  grid.innerHTML = ts.players.map(p => `<div class="player-slot">${escapeHtml(p.name)} ${p.id === ts.hostId ? '👑' : ''}</div>`).join('');
-  for (let i = ts.players.length; i < ts.maxPlayers; i++) {
-    grid.innerHTML += `<div class="player-slot" style="opacity:0.6;">Ожидание...</div>`;
-  }
-}
-
 function showWinnerAnimation(name) {
   const div = document.createElement('div');
   div.className = 'winner-animation';
   div.innerText = `🏆 ${name} ПОБЕДА! 🏆`;
   document.body.appendChild(div);
-  setTimeout(() => div.remove(), 1500);
+  setTimeout(() => div.remove(), 2000);
+}
+
+// ============ ЧАТ ============
+function toggleChat() {
+  const container = document.getElementById('chat-container');
+  container.classList.toggle('open');
+  if (container.classList.contains('open')) {
+    document.getElementById('chat-badge').style.display = 'none';
+  }
+}
+
+function handleChatKeyPress(event) {
+  if (event.key === 'Enter') sendChatMessage();
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  if (state.socket && state.tableId) {
+    state.socket.emit('chatMessage', { tableId: state.tableId, message, playerName: state.player.name });
+    addChatMessage(state.player.name, message, true);
+    input.value = '';
+  } else {
+    showToast('Чат доступен только за столом');
+  }
+}
+
+function addChatMessage(sender, message, isMy) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-message ${isMy ? 'my' : 'other'}`;
+  div.innerHTML = `
+    <div class="chat-sender">${escapeHtml(sender)}</div>
+    <div>${escapeHtml(message)}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  
+  if (!document.getElementById('chat-container').classList.contains('open') && !isMy) {
+    const badge = document.getElementById('chat-badge');
+    badge.style.display = 'flex';
+    badge.innerText = (parseInt(badge.innerText) || 0) + 1;
+  }
+}
+
+// ============ НАСТРОЙКИ ============
+function toggleSettings() {
+  const p = document.getElementById('settings-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function changeTheme(t) {
+  document.body.style.setProperty('--felt', t === 'dark' ? '#1a2a1a' : '#1a472a');
 }
 
 // ============ SOCKET ПОДКЛЮЧЕНИЕ ============
@@ -529,38 +635,25 @@ function connectSocket() {
   state.socket = socket;
   
   socket.on('connect', () => {
+    console.log('Socket connected');
     socket.emit('register', { name: state.player.name, avatar: state.player.avatar });
     refreshTables();
   });
   
-  socket.on('registered', ({ id }) => { state.player.id = id; });
+  socket.on('registered', ({ id }) => {
+    state.player.id = id;
+    console.log('Registered with id:', id);
+  });
   
   socket.on('tablesList', (tables) => {
     state.allTables = tables;
-    const container = document.getElementById('tables-list');
-    if (!tables.length) {
-      container.innerHTML = '<div style="text-align:center;">Нет столов, создайте!</div>';
-      return;
-    }
-    container.innerHTML = tables.map(t => `
-      <div class="table-card" onclick="joinTable('${t.id}')">
-        <div class="table-icon">🎲</div>
-        <div><b>${escapeHtml(t.hostName)}'s стол</b><div>${t.playerCount}/${t.maxPlayers}</div></div>
-      </div>
-    `).join('');
+    renderTables(tables);
   });
   
   socket.on('tablesUpdate', (tables) => {
     state.allTables = tables;
-    const container = document.getElementById('tables-list');
     if (document.getElementById('lobby-screen').classList.contains('active')) {
-      container.innerHTML = tables.map(t => `
-        <div class="table-card" onclick="joinTable('${t.id}')">
-          <div class="table-icon">🎲</div>
-          <div><b>${escapeHtml(t.hostName)}'s стол</b><div>${t.playerCount}/${t.maxPlayers}</div></div>
-        </div>
-      `).join('');
-      if (!tables.length) container.innerHTML = '<div style="text-align:center;">Нет столов, создайте!</div>';
+      renderTables(tables);
     }
   });
   
@@ -568,6 +661,7 @@ function connectSocket() {
     state.tableId = tableId;
     showScreen('waiting-screen');
     document.getElementById('table-id-display').innerText = tableId;
+    showToast('Стол создан! Ожидайте игроков');
   });
   
   socket.on('tableState', (ts) => {
@@ -577,56 +671,65 @@ function connectSocket() {
   });
   
   socket.on('playerJoined', ({ player }) => {
-    showToast(`${player.name} присоединился`);
-    addChatMsg('Система', `${player.name} присоединился`, false);
+    showToast(`${player.name} присоединился к столу`);
+    addChatMessage('Система', `${player.name} присоединился`, false);
   });
   
-  socket.on('playerLeft', () => { showToast('Игрок покинул стол'); });
+  socket.on('playerLeft', () => {
+    showToast('Игрок покинул стол');
+  });
   
   socket.on('gameStarted', (ts) => {
     showScreen('game-screen');
     renderGame(ts);
     playSound('place');
-    showToast('Игра началась!');
+    showToast('Игра началась! Удачи!');
+    addChatMessage('Система', 'Игра началась!', false);
   });
   
   socket.on('tilePlayed', ({ playerName }) => {
     playSound('place');
-    if (playerName !== state.player.name) addChatMsg('Система', `${playerName} сделал ход`, false);
+    if (playerName !== state.player.name) {
+      addChatMessage('Система', `${playerName} сделал ход`, false);
+    }
   });
   
-  socket.on('tileDrawn', ({ tile }) => { showToast(`Взята кость [${tile[0]}|${tile[1]}]`); });
+  socket.on('tileDrawn', ({ tile }) => {
+    if (tile) showToast(`Вы взяли кость [${tile[0]}|${tile[1]}]`);
+  });
   
   socket.on('roundEnd', ({ winner, scores }) => {
     if (winner === state.player.id) {
-      playSound('win');
+      playSound('place');
       showWinnerAnimation(state.player.name);
+      showToast('🎉 Вы выиграли раунд! 🎉');
+    } else {
+      const winnerName = state.tableState?.players.find(p => p.id === winner)?.name || 'Кто-то';
+      showToast(`${winnerName} выиграл раунд`);
     }
-    showToast(winner === state.player.id ? '🎉 Вы выиграли раунд!' : 'Раунд окончен');
   });
   
   socket.on('gameOver', ({ winner, scores, reason }) => {
     const isWin = (winner === state.player.id);
     if (isWin) {
-      playSound('win');
+      playSound('place');
       showWinnerAnimation(state.player.name);
+      showToast('🏆 ПОБЕДА В ПАРТИИ! 🏆');
+    } else {
+      showToast('Партия окончена');
     }
-    showToast(isWin ? '🏆 ПОБЕДА! 🏆' : 'Игра окончена');
-    addChatMsg('Система', isWin ? 'Вы победили в партии!' : 'Партия завершена', false);
-    setTimeout(() => leaveTable(), 3000);
+    addChatMessage('Система', isWin ? 'Вы победили в партии!' : 'Партия завершена', false);
   });
   
   socket.on('chatMessage', ({ playerName, message }) => {
     if (playerName !== state.player.name) {
-      addChatMsg(playerName, message, false);
+      addChatMessage(playerName, message, false);
     }
   });
   
-  socket.on('chatHistory', (messages) => {
-    messages.forEach(msg => addChatMsg(msg.playerName, msg.message, false));
+  socket.on('error', (msg) => {
+    showToast('⚠️ ' + msg);
   });
-  
-  socket.on('error', (msg) => showToast(msg));
 }
 
 // ============ ИНИЦИАЛИЗАЦИЯ ============
@@ -635,21 +738,23 @@ if (savedName) state.player.name = savedName;
 document.getElementById('lobby-name').innerText = state.player.name;
 connectSocket();
 
-// Глобальные функции
-window.showCreateModal = showCreateModal;
+// Глобальные функции для onclick
+window.showNameModal = showNameModal;
+window.savePlayerName = savePlayerName;
 window.closeModal = closeModal;
+window.showCreateModal = showCreateModal;
 window.createTable = createTable;
 window.joinTable = joinTable;
 window.quickJoin = quickJoin;
 window.refreshTables = refreshTables;
+window.filterTables = filterTables;
 window.leaveTable = leaveTable;
 window.startGame = startGame;
 window.drawFromBoneyard = drawFromBoneyard;
 window.passTurn = passTurn;
-window.showNameModal = showNameModal;
-window.savePlayerName = savePlayerName;
 window.toggleChat = toggleChat;
 window.sendChatMessage = sendChatMessage;
+window.handleChatKeyPress = handleChatKeyPress;
 window.toggleSettings = toggleSettings;
 window.changeTheme = changeTheme;
 </script>
