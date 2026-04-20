@@ -5,13 +5,27 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+// Настройка для Render - важно!
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
-  transports: ['websocket', 'polling']
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Здоровье-чекаут для Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: Date.now() });
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -57,7 +71,7 @@ function createTable(hostId, hostName, maxPlayers = 4) {
     chatHistory: []
   };
   tables.set(tableId, table);
-  console.log(`Table created: ${tableId} by ${hostName}`);
+  console.log(`[SERVER] Table created: ${tableId} by ${hostName}`);
   return table;
 }
 
@@ -85,6 +99,7 @@ function dealTiles(table) {
     });
   });
   table.currentTurn = startIdx;
+  console.log(`[SERVER] Game dealt, first turn: player ${startIdx}`);
 }
 
 function canPlayTile(tile, boardEnds) {
@@ -159,7 +174,7 @@ function passTurn(table, playerId) {
   const pIdx = table.players.indexOf(player);
   
   if (pIdx !== table.currentTurn) return { error: 'Не ваш ход' };
-  if (table.boneyard.length > 0) return { error: 'Сначала возьмите кость из бонеярда' };
+  if (table.boneyard.length > 0) return { error: 'Сначала возьмите кость' };
   
   const canPlay = player.hand.some(t => canPlayTile(t, table.boardEnds));
   if (canPlay) return { error: 'У вас есть ход' };
@@ -256,13 +271,13 @@ function getPublicTable(table) {
 
 // ============ SOCKET.IO ============
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`[SOCKET] Client connected: ${socket.id}`);
   let currentPlayer = null;
   
   socket.on('register', ({ name, avatar }) => {
     currentPlayer = { id: socket.id, name: name || 'Игрок', avatar: avatar || '🎲' };
     socket.emit('registered', { id: socket.id });
-    console.log(`Player registered: ${name}`);
+    console.log(`[SOCKET] Player registered: ${name} (${socket.id})`);
   });
   
   socket.on('getTables', () => {
@@ -270,6 +285,7 @@ io.on('connection', (socket) => {
       .filter(t => t.status === 'waiting')
       .map(getPublicTable);
     socket.emit('tablesList', publicTables);
+    console.log(`[SOCKET] Sent ${publicTables.length} tables to ${socket.id}`);
   });
   
   socket.on('createTable', ({ maxPlayers }) => {
@@ -287,6 +303,7 @@ io.on('connection', (socket) => {
     socket.emit('tableState', getTableState(table, socket.id));
     
     broadcastTables();
+    console.log(`[SOCKET] Table created: ${table.id} by ${currentPlayer.name}`);
   });
   
   socket.on('joinTable', ({ tableId }) => {
@@ -310,6 +327,7 @@ io.on('connection', (socket) => {
     io.to(tableId).emit('tableState', getTableState(table, socket.id));
     
     broadcastTables();
+    console.log(`[SOCKET] ${currentPlayer.name} joined table ${tableId}`);
   });
   
   socket.on('startGame', ({ tableId }) => {
@@ -329,6 +347,7 @@ io.on('connection', (socket) => {
     });
     
     broadcastTables();
+    console.log(`[SOCKET] Game started at table ${tableId}`);
   });
   
   socket.on('playTile', ({ tableId, tileIdx, side }) => {
@@ -351,6 +370,7 @@ io.on('connection', (socket) => {
       if (gameEnd) {
         table.status = 'finished';
         io.to(tableId).emit('gameOver', { winner: gameWinner, scores: table.scores, reason: 'score101', totalPips });
+        console.log(`[SERVER] Game over at ${tableId}, winner: ${gameWinner}`);
       } else {
         io.to(tableId).emit('roundEnd', { winner, scores: table.scores, totalPips });
         dealTiles(table);
@@ -440,6 +460,7 @@ io.on('connection', (socket) => {
     if (table.chatHistory.length > 100) table.chatHistory.shift();
     
     io.to(tableId).emit('chatMessage', chatMsg);
+    console.log(`[CHAT] ${tableId}: ${playerName}: ${message}`);
   });
   
   socket.on('leaveTable', ({ tableId }) => {
@@ -447,7 +468,7 @@ io.on('connection', (socket) => {
   });
   
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    console.log(`[SOCKET] Client disconnected: ${socket.id}`);
     for (const [tableId, table] of tables) {
       if (table.players.some(p => p.id === socket.id)) {
         handleLeave(socket, tableId);
@@ -465,7 +486,7 @@ io.on('connection', (socket) => {
     
     if (table.players.length === 0) {
       tables.delete(tableId);
-      console.log(`Table ${tableId} deleted`);
+      console.log(`[SERVER] Table ${tableId} deleted (empty)`);
     } else {
       if (table.hostId === socket.id) {
         table.hostId = table.players[0].id;
@@ -495,5 +516,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`[SERVER] Running on port ${PORT}`);
+  console.log(`[SERVER] WebSocket ready`);
 });
