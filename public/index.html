@@ -40,17 +40,23 @@ body {
 .lobby-header h1 { font-size: 42px; margin: 0; background: linear-gradient(135deg, var(--gold), #ffdf8c); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .player-badge { display: inline-flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.5); padding: 8px 18px; border-radius: 40px; margin-top: 10px; cursor: pointer; border: 1px solid var(--gold-dark); }
 .table-grid { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.table-card { background: rgba(0,0,0,0.55); border-radius: 20px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(232,196,104,0.4); cursor: pointer; }
+.table-card { background: rgba(0,0,0,0.55); border-radius: 20px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid rgba(232,196,104,0.4); cursor: pointer; transition: 0.2s; }
+.table-card:hover { border-color: var(--gold); background: rgba(0,0,0,0.7); }
 .table-icon { width: 52px; height: 52px; background: #2a6230; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; border: 1px solid var(--gold); }
 .btn-group { display: flex; gap: 12px; margin-top: 16px; }
-.btn { flex: 1; padding: 14px; border-radius: 40px; font-weight: bold; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; }
+.btn { flex: 1; padding: 14px; border-radius: 40px; font-weight: bold; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; transition: 0.1s; }
+.btn:active { transform: scale(0.97); }
 .btn-primary { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: #1a2a1a; }
 .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
 .search-bar input { flex: 1; background: #00000066; border: 1px solid var(--gold); border-radius: 40px; padding: 10px; color: white; outline: none; }
+.search-bar button { background: #00000066; border: 1px solid var(--gold); border-radius: 40px; width: 44px; cursor: pointer; color: white; font-size: 20px; }
 
 /* Ожидание */
+.waiting-header { padding: 20px; display: flex; align-items: center; gap: 12px; background: #00000055; }
+.waiting-header button { background: none; border: 1px solid var(--gold); border-radius: 30px; padding: 8px 16px; color: white; cursor: pointer; }
 .waiting-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; padding: 24px; }
-.player-slot { background: rgba(0,0,0,0.4); border-radius: 60px; padding: 12px 24px; text-align: center; border: 1px solid var(--gold); }
+.player-slot { background: rgba(0,0,0,0.4); border-radius: 60px; padding: 12px 24px; text-align: center; border: 1px solid var(--gold); min-width: 120px; }
+.waiting-footer { padding: 20px; text-align: center; }
 
 /* Игра */
 .game-layout { display: flex; flex-direction: column; height: 100%; }
@@ -61,7 +67,7 @@ body {
 .board-arena { flex: 2; display: flex; align-items: center; justify-content: center; position: relative; }
 .board-table { background: rgba(0,20,0,0.4); border-radius: 48px; padding: 16px; width: 95%; height: 90%; display: flex; align-items: center; justify-content: center; overflow-x: auto; border: 1px solid var(--gold-dark); }
 .board-tiles { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
-.domino-tile { background: #fff8ed; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.3); display: inline-flex; flex-direction: column; cursor: pointer; flex-shrink: 0; border: 2px solid #c9aa5f; }
+.domino-tile { background: #fff8ed; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.3); display: inline-flex; flex-direction: column; cursor: pointer; flex-shrink: 0; border: 2px solid #c9aa5f; transition: 0.1s; }
 .tile-hand { width: 58px; height: 100px; }
 .tile-hand .tile-half { height: 50px; width: 58px; }
 .tile-board { width: 52px; height: 88px; }
@@ -87,7 +93,8 @@ body {
 .hand-title { text-align: center; font-size: 12px; margin-bottom: 10px; color: #ffeaad; }
 .hand-tiles { display: flex; justify-content: center; gap: 12px; overflow-x: auto; padding: 6px; }
 .action-buttons { display: flex; justify-content: center; gap: 16px; margin-top: 12px; }
-.action-btn { background: rgba(0,0,0,0.6); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 40px; font-weight: bold; color: #ffefc0; cursor: pointer; }
+.action-btn { background: rgba(0,0,0,0.6); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 40px; font-weight: bold; color: #ffefc0; cursor: pointer; transition: 0.1s; }
+.action-btn:active { transform: scale(0.96); }
 .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .selected-tile { transform: translateY(-18px) scale(1.05); border: 3px solid #ffcc44 !important; }
 
@@ -109,7 +116,7 @@ body {
 .toast.show { opacity: 1; bottom: 40%; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 300; display: none; }
 .modal-card { background: #1e3a2a; border-radius: 32px; padding: 24px; width: 80%; max-width: 320px; border: 1px solid gold; }
-.modal-card input, .modal-card select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 20px; border: none; background: #2a2a2a; color: white; }
+.modal-card input, .modal-card select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 20px; border: none; background: #2a2a2a; color: white; outline: none; }
 .modal-card button { padding: 10px 20px; border-radius: 20px; border: none; background: var(--gold); font-weight: bold; cursor: pointer; margin: 5px; }
 .turn-banner { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); background: gold; color: black; padding: 6px 20px; border-radius: 40px; font-weight: bold; white-space: nowrap; z-index: 30; animation: pulse 1s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
@@ -124,13 +131,13 @@ body {
     <div class="lobby-header">
       <h1>🎲 DOMINO</h1>
       <div class="player-badge" onclick="showNameModal()">
-        <span id="lobby-avatar">🎲</span>
+        <span>🎲</span>
         <span id="lobby-name">Игрок</span> ✎
       </div>
     </div>
     <div class="search-bar">
       <input type="text" id="search-input" placeholder="Поиск стола..." oninput="filterTables()">
-      <button onclick="refreshTables()" style="background:#00000066; border:1px solid gold; border-radius:40px; width:44px; cursor:pointer;">↻</button>
+      <button onclick="refreshTables()">↻</button>
     </div>
     <div class="table-grid" id="tables-list"><div style="text-align:center; padding:40px;">Загрузка...</div></div>
     <div class="btn-group">
@@ -141,13 +148,13 @@ body {
 </div>
 
 <div id="waiting-screen" class="screen">
-  <div style="padding:20px; display:flex; align-items:center; gap:12px; background:#00000055;">
-    <button onclick="leaveTable()" style="background:none; border:1px solid gold; border-radius:30px; padding:8px 16px; cursor:pointer;">← Назад</button>
+  <div class="waiting-header">
+    <button onclick="leaveTable()">← Назад</button>
     <h3>Ожидание игроков</h3>
     <span id="table-id-display" style="background:#00000099; padding:4px 12px; border-radius:20px;">—</span>
   </div>
   <div class="waiting-grid" id="players-grid"></div>
-  <div style="padding:20px; text-align:center;">
+  <div class="waiting-footer">
     <button id="start-btn" class="btn btn-primary" onclick="startGame()" disabled>Начать игру</button>
     <button class="btn" onclick="leaveTable()" style="margin-left:12px;">Покинуть</button>
   </div>
@@ -201,102 +208,568 @@ body {
 <div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="name-modal">
-  <div class="modal-card"><h3>Ваше имя</h3><input id="player-name-input"><div style="display:flex; gap:8px; margin-top:12px;"><button onclick="savePlayerName()">Сохранить</button><button onclick="closeModal('name-modal')">Отмена</button></div></div>
+  <div class="modal-card">
+    <h3>Ваше имя</h3>
+    <input id="player-name-input" placeholder="Введите имя">
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button onclick="savePlayerName()">Сохранить</button>
+      <button onclick="closeModal('name-modal')">Отмена</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="create-modal">
-  <div class="modal-card"><h3>Новый стол</h3><select id="max-players"><option value="2">2 игрока</option><option value="3">3 игрока</option><option value="4" selected>4 игрока</option></select><div style="margin-top:16px;"><button onclick="createTable()">Создать</button><button onclick="closeModal('create-modal')">Отмена</button></div></div>
+  <div class="modal-card">
+    <h3>Новый стол</h3>
+    <select id="max-players">
+      <option value="2">2 игрока</option>
+      <option value="3">3 игрока</option>
+      <option value="4" selected>4 игрока</option>
+    </select>
+    <div style="margin-top:16px;">
+      <button onclick="createTable()">Создать</button>
+      <button onclick="closeModal('create-modal')">Отмена</button>
+    </div>
+  </div>
 </div>
 
 <script>
 // Состояние
-const state = { socket: null, player: { id: null, name: 'Игрок', avatar: '🎲' }, tableId: null, tableState: null, selectedTileIdx: null, isMyTurn: false, allTables: [] };
+const state = {
+  socket: null,
+  player: { id: null, name: 'Игрок', avatar: '🎲' },
+  tableId: null,
+  tableState: null,
+  selectedTileIdx: null,
+  isMyTurn: false,
+  allTables: []
+};
+
 let soundEnabled = true;
 document.getElementById('sound-toggle')?.addEventListener('change', e => soundEnabled = e.target.checked);
 
-function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function escapeHtml(s) { if (!s) return ''; return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
-// Лобби
-function showNameModal() { document.getElementById('player-name-input').value = state.player.name; document.getElementById('name-modal').classList.add('active'); }
-function savePlayerName() { const val = document.getElementById('player-name-input').value.trim(); if (val) state.player.name = val.slice(0, 18); localStorage.setItem('domino_name', state.player.name); document.getElementById('lobby-name').innerText = state.player.name; closeModal('name-modal'); if (state.socket) state.socket.emit('register', { name: state.player.name, avatar: state.player.avatar }); }
-function refreshTables() { if (state.socket) state.socket.emit('getTables'); }
-function filterTables() { const q = document.getElementById('search-input').value.toLowerCase(); const filtered = state.allTables.filter(t => t.hostName.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)); renderTables(filtered); }
-function renderTables(tables) { const c = document.getElementById('tables-list'); if (!tables || !tables.length) { c.innerHTML = '<div style="text-align:center; padding:40px;">Нет столов. Создайте новый!</div>'; return; } c.innerHTML = tables.map(t => `<div class="table-card" onclick="joinTable('${t.id}')"><div class="table-icon">🎲</div><div><b>${escapeHtml(t.hostName)}'s стол</b><div>${t.playerCount}/${t.maxPlayers}</div></div></div>`).join(''); }
-function showCreateModal() { document.getElementById('create-modal').classList.add('active'); }
-function createTable() { const max = parseInt(document.getElementById('max-players').value); if (state.socket) { state.socket.emit('createTable', { maxPlayers: max }); closeModal('create-modal'); } }
-function quickJoin() { const open = state.allTables.filter(t => t.playerCount < t.maxPlayers); if (open.length) joinTable(open[0].id); else showCreateModal(); }
-function joinTable(id) { if (state.socket) { state.socket.emit('joinTable', { tableId: id }); state.tableId = id; showScreen('waiting-screen'); document.getElementById('table-id-display').innerText = id; } }
-function leaveTable() { if (state.socket && state.tableId) state.socket.emit('leaveTable', { tableId: state.tableId }); state.tableId = null; state.tableState = null; state.selectedTileIdx = null; showScreen('lobby-screen'); refreshTables(); }
-function startGame() { if (state.socket && state.tableId) state.socket.emit('startGame', { tableId: state.tableId }); }
-function drawFromBoneyard() { if (state.socket && state.tableId) state.socket.emit('drawTile', { tableId: state.tableId }); }
-function passTurn() { if (state.socket && state.tableId) state.socket.emit('passTurn', { tableId: state.tableId }); }
-
-// Отрисовка костей
-const dotMap = {0:[],1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[0,2],[2,0],[2,2]],5:[[0,0],[0,2],[1,1],[2,0],[2,2]],6:[[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]]};
-function renderDots(n) { const g = document.createElement('div'); g.className = `dots d${n}`; for (let r=0;r<3;r++) for (let c=0;c<3;c++) { const cell = document.createElement('div'); cell.style.display = 'flex'; cell.style.alignItems = 'center'; cell.style.justifyContent = 'center'; if (dotMap[n]?.some(([rr,cc])=>rr===r&&cc===c)) { const dot = document.createElement('div'); dot.className = 'dot'; cell.appendChild(dot); } g.appendChild(cell); } return g; }
-function createTile(a,b,type='hand',selected=false) { const tile = document.createElement('div'); tile.className = `domino-tile tile-${type}`; if (type==='board') tile.classList.add('horizontal'); const h1=document.createElement('div'); h1.className='tile-half'; h1.appendChild(renderDots(a)); const div=document.createElement('div'); div.className=type==='board'?'tile-divider-v':'tile-divider-h'; const h2=document.createElement('div'); h2.className='tile-half'; h2.appendChild(renderDots(b)); tile.appendChild(h1); tile.appendChild(div); tile.appendChild(h2); if(selected) tile.classList.add('selected-tile'); return tile; }
-function canPlayTile(tile, ends) { if (!ends) return true; return tile[0]===ends.left || tile[1]===ends.left || tile[0]===ends.right || tile[1]===ends.right; }
-function onSelectTile(idx, tile, ts) { if (!state.isMyTurn) { showToast('Не ваш ход'); return; } if (!canPlayTile(tile, ts.boardEnds)) { showToast('❌ Нельзя поставить'); return; } state.selectedTileIdx = idx; renderGame(ts); const ends = ts.boardEnds; const leftOk = tile[0]===ends?.left || tile[1]===ends?.left; const rightOk = tile[0]===ends?.right || tile[1]===ends?.right; if (leftOk && !rightOk) confirmPlay('left'); else if (rightOk && !leftOk) confirmPlay('right'); else { const side = confirm(`Куда поставить?\nВлево (${ends?.left})\nВправо (${ends?.right})`) ? 'left' : 'right'; confirmPlay(side); } }
-function confirmPlay(side) { if (state.selectedTileIdx !== null && state.socket && state.tableId) { state.socket.emit('playTile', { tableId: state.tableId, tileIdx: state.selectedTileIdx, side }); state.selectedTileIdx = null; } }
-
-function renderWaiting(ts) { const grid = document.getElementById('players-grid'); const isHost = (ts.hostId === state.player.id); const startBtn = document.getElementById('start-btn'); startBtn.disabled = !(isHost && ts.players.length >= 2); grid.innerHTML = ts.players.map(p => `<div class="player-slot">${escapeHtml(p.name)} ${p.id === ts.hostId ? '👑' : ''}</div>`).join(''); for (let i=ts.players.length;i<ts.maxPlayers;i++) grid.innerHTML += `<div class="player-slot" style="opacity:0.6;">Ожидание...</div>`; }
-
-function renderGame(ts) {
-  state.tableState = ts; state.isMyTurn = (ts.currentPlayerId === state.player.id);
-  const topBar = document.getElementById('top-scores-bar'); topBar.innerHTML = '';
-  ts.players.forEach(p => { const active = (p.id === ts.currentPlayerId) ? 'active-turn' : ''; topBar.innerHTML += `<div class="score-badge ${active}"><span>${escapeHtml(p.name)}</span><span class="score-value">${ts.scores[p.id] || 0}</span></div>`; });
-  topBar.innerHTML += `<div style="background:rgba(0,0,0,0.5); border-radius:60px; padding:6px 18px;">🎴 ${ts.boneyardCount}</div>`;
-  const boardDiv = document.getElementById('board-tiles'); boardDiv.innerHTML = '';
-  if (ts.board && ts.board.length) { ts.board.forEach(entry => { const [a,b] = entry.tile; boardDiv.appendChild(createTile(a,b,'board')); }); } else { boardDiv.innerHTML = '<div>Первый ход...</div>'; }
-  const sideContainer = document.getElementById('side-players-container'); sideContainer.innerHTML = '';
-  const opponents = ts.players.filter(p => p.id !== state.player.id);
-  opponents.forEach((p,idx) => { const side = idx % 2 === 0 ? 'side-left' : 'side-right'; const div = document.createElement('div'); div.className = `side-player ${side}`; div.innerHTML = `<div>${escapeHtml(p.name)}</div><div class="player-score">${ts.scores[p.id] || 0}</div><div>${Array(p.handCount).fill(0).map(() => '<div class="mini-tile"></div>').join('')}</div>`; sideContainer.appendChild(div); });
-  const handDiv = document.getElementById('my-hand'); handDiv.innerHTML = '';
-  ts.myHand.forEach((tile,idx) => { const el = createTile(tile[0], tile[1], 'hand', idx === state.selectedTileIdx); el.addEventListener('click', () => onSelectTile(idx, tile, ts)); handDiv.appendChild(el); });
-  document.getElementById('my-hand-count').innerText = ts.myHand.length;
-  const drawBtn = document.getElementById('draw-btn'); const passBtn = document.getElementById('pass-btn');
-  if (state.isMyTurn) { const hasPlayable = ts.myHand.some(t => canPlayTile(t, ts.boardEnds)); drawBtn.disabled = !(!hasPlayable && ts.boneyardCount > 0); passBtn.disabled = !(ts.boneyardCount === 0 && !hasPlayable); document.getElementById('turn-banner').style.display = 'block'; } 
-  else { drawBtn.disabled = true; passBtn.disabled = true; document.getElementById('turn-banner').style.display = 'none'; }
+function playSound() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 440;
+    g.gain.value = 0.1;
+    g.gain.exponentialRampToValueAtTime(0.001, 0.2);
+    o.start();
+    o.stop(0.2);
+  } catch(e) {}
 }
 
-// Чат
-function toggleChat() { const c = document.getElementById('chat-container'); c.classList.toggle('open'); if (c.classList.contains('open')) document.getElementById('chat-badge').style.display = 'none'; }
-function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
-function sendChatMessage() { const inp = document.getElementById('chat-input'); const msg = inp.value.trim(); if (!msg) return; if (state.socket && state.tableId) { state.socket.emit('chatMessage', { tableId: state.tableId, message: msg, playerName: state.player.name }); addChatMessage(state.player.name, msg, true); inp.value = ''; } else { showToast('Чат доступен только за столом'); } }
-function addChatMessage(sender, msg, isMy) { const container = document.getElementById('chat-messages'); if (container.querySelector('div[style*="text-align:center"]')) container.innerHTML = ''; const div = document.createElement('div'); div.className = `chat-message ${isMy ? 'my' : 'other'}`; div.innerHTML = `<div class="chat-sender">${escapeHtml(sender)}</div><div>${escapeHtml(msg)}</div>`; container.appendChild(div); container.scrollTop = container.scrollHeight; if (!document.getElementById('chat-container').classList.contains('open') && !isMy) { const badge = document.getElementById('chat-badge'); badge.style.display = 'flex'; badge.innerText = (parseInt(badge.innerText) || 0) + 1; } }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
 
-function toggleSettings() { const p = document.getElementById('settings-panel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
-function changeTheme(t) { document.body.style.setProperty('--felt', t === 'dark' ? '#1a2a1a' : '#1a472a'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
 
-// Socket подключение
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============ ЛОББИ ============
+function showNameModal() {
+  document.getElementById('player-name-input').value = state.player.name;
+  document.getElementById('name-modal').classList.add('active');
+}
+
+function savePlayerName() {
+  const val = document.getElementById('player-name-input').value.trim();
+  if (val) state.player.name = val.slice(0, 18);
+  localStorage.setItem('domino_name', state.player.name);
+  document.getElementById('lobby-name').innerText = state.player.name;
+  closeModal('name-modal');
+  if (state.socket && state.socket.connected) {
+    state.socket.emit('register', { name: state.player.name, avatar: state.player.avatar });
+  }
+}
+
+function refreshTables() {
+  if (state.socket && state.socket.connected) {
+    state.socket.emit('getTables');
+  }
+}
+
+function filterTables() {
+  const query = document.getElementById('search-input').value.toLowerCase();
+  const filtered = state.allTables.filter(t => 
+    t.hostName.toLowerCase().includes(query) || t.id.toLowerCase().includes(query)
+  );
+  renderTables(filtered);
+}
+
+function renderTables(tables) {
+  const container = document.getElementById('tables-list');
+  if (!tables || tables.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:40px;">Нет столов. Создайте новый!</div>';
+    return;
+  }
+  container.innerHTML = tables.map(t => `
+    <div class="table-card" onclick="joinTable('${t.id}')">
+      <div class="table-icon">🎲</div>
+      <div>
+        <b>${escapeHtml(t.hostName)}'s стол</b>
+        <div>${t.playerCount}/${t.maxPlayers} игроков</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showCreateModal() {
+  document.getElementById('create-modal').classList.add('active');
+}
+
+function createTable() {
+  const max = parseInt(document.getElementById('max-players').value);
+  if (state.socket && state.socket.connected) {
+    state.socket.emit('createTable', { maxPlayers: max });
+    closeModal('create-modal');
+    showToast('Создание стола...');
+  } else {
+    showToast('Нет соединения с сервером');
+  }
+}
+
+function quickJoin() {
+  const openTables = state.allTables.filter(t => t.playerCount < t.maxPlayers);
+  if (openTables.length) {
+    joinTable(openTables[0].id);
+  } else {
+    showCreateModal();
+  }
+}
+
+function joinTable(id) {
+  if (state.socket && state.socket.connected) {
+    state.socket.emit('joinTable', { tableId: id });
+    state.tableId = id;
+    showScreen('waiting-screen');
+    document.getElementById('table-id-display').innerText = id;
+  }
+}
+
+function leaveTable() {
+  if (state.socket && state.socket.connected && state.tableId) {
+    state.socket.emit('leaveTable', { tableId: state.tableId });
+  }
+  state.tableId = null;
+  state.tableState = null;
+  state.selectedTileIdx = null;
+  showScreen('lobby-screen');
+  refreshTables();
+}
+
+function startGame() {
+  if (state.socket && state.socket.connected && state.tableId) {
+    state.socket.emit('startGame', { tableId: state.tableId });
+  }
+}
+
+function drawFromBoneyard() {
+  if (state.socket && state.socket.connected && state.tableId) {
+    state.socket.emit('drawTile', { tableId: state.tableId });
+  }
+}
+
+function passTurn() {
+  if (state.socket && state.socket.connected && state.tableId) {
+    state.socket.emit('passTurn', { tableId: state.tableId });
+  }
+}
+
+// ============ ОТРИСОВКА КОСТЕЙ ============
+const dotMap = {0:[],1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[0,2],[2,0],[2,2]],5:[[0,0],[0,2],[1,1],[2,0],[2,2]],6:[[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]]};
+
+function renderDots(n) {
+  const grid = document.createElement('div');
+  grid.className = `dots d${n}`;
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cell = document.createElement('div');
+      cell.style.display = 'flex';
+      cell.style.alignItems = 'center';
+      cell.style.justifyContent = 'center';
+      if (dotMap[n]?.some(([rr, cc]) => rr === r && cc === c)) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        cell.appendChild(dot);
+      }
+      grid.appendChild(cell);
+    }
+  }
+  return grid;
+}
+
+function createTile(a, b, type = 'hand', isSelected = false) {
+  const tile = document.createElement('div');
+  tile.className = `domino-tile tile-${type}`;
+  if (type === 'board') tile.classList.add('horizontal');
+  
+  const half1 = document.createElement('div');
+  half1.className = 'tile-half';
+  half1.appendChild(renderDots(a));
+  
+  const divider = document.createElement('div');
+  divider.className = type === 'board' ? 'tile-divider-v' : 'tile-divider-h';
+  
+  const half2 = document.createElement('div');
+  half2.className = 'tile-half';
+  half2.appendChild(renderDots(b));
+  
+  tile.appendChild(half1);
+  tile.appendChild(divider);
+  tile.appendChild(half2);
+  
+  if (isSelected) tile.classList.add('selected-tile');
+  return tile;
+}
+
+function canPlayTile(tile, ends) {
+  if (!ends) return true;
+  return tile[0] === ends.left || tile[1] === ends.left || 
+         tile[0] === ends.right || tile[1] === ends.right;
+}
+
+function onSelectTile(idx, tile, ts) {
+  if (!state.isMyTurn) {
+    showToast('Не ваш ход');
+    return;
+  }
+  if (!canPlayTile(tile, ts.boardEnds)) {
+    showToast('❌ Нельзя поставить эту кость');
+    return;
+  }
+  
+  state.selectedTileIdx = idx;
+  renderGame(ts);
+  
+  const ends = ts.boardEnds;
+  const leftOk = tile[0] === ends?.left || tile[1] === ends?.left;
+  const rightOk = tile[0] === ends?.right || tile[1] === ends?.right;
+  
+  if (leftOk && !rightOk) {
+    confirmPlay('left');
+  } else if (rightOk && !leftOk) {
+    confirmPlay('right');
+  } else {
+    const side = confirm(`Куда поставить?\nВлево (${ends?.left})\nВправо (${ends?.right})`) ? 'left' : 'right';
+    confirmPlay(side);
+  }
+}
+
+function confirmPlay(side) {
+  if (state.selectedTileIdx !== null && state.socket && state.tableId) {
+    state.socket.emit('playTile', { 
+      tableId: state.tableId, 
+      tileIdx: state.selectedTileIdx, 
+      side 
+    });
+    state.selectedTileIdx = null;
+    playSound();
+  }
+}
+
+// ============ ОТРИСОВКА ЭКРАНОВ ============
+function renderWaiting(ts) {
+  const grid = document.getElementById('players-grid');
+  const isHost = (ts.hostId === state.player.id);
+  const startBtn = document.getElementById('start-btn');
+  startBtn.disabled = !(isHost && ts.players.length >= 2);
+  
+  grid.innerHTML = ts.players.map(p => `
+    <div class="player-slot">
+      ${escapeHtml(p.name)} ${p.id === ts.hostId ? '👑' : ''}
+    </div>
+  `).join('');
+  
+  for (let i = ts.players.length; i < ts.maxPlayers; i++) {
+    grid.innerHTML += `<div class="player-slot" style="opacity:0.6;">Ожидание игрока...</div>`;
+  }
+}
+
+function renderGame(ts) {
+  state.tableState = ts;
+  state.isMyTurn = (ts.currentPlayerId === state.player.id);
+  
+  // Верхняя панель
+  const topBar = document.getElementById('top-scores-bar');
+  topBar.innerHTML = '';
+  ts.players.forEach(p => {
+    const active = (p.id === ts.currentPlayerId) ? 'active-turn' : '';
+    topBar.innerHTML += `
+      <div class="score-badge ${active}">
+        <span>${escapeHtml(p.name)}</span>
+        <span class="score-value">${ts.scores[p.id] || 0}</span>
+      </div>
+    `;
+  });
+  topBar.innerHTML += `<div style="background:rgba(0,0,0,0.5); border-radius:60px; padding:6px 18px;">🎴 ${ts.boneyardCount}</div>`;
+  
+  // Доска
+  const boardDiv = document.getElementById('board-tiles');
+  boardDiv.innerHTML = '';
+  if (ts.board && ts.board.length) {
+    ts.board.forEach(entry => {
+      const [a, b] = entry.tile;
+      boardDiv.appendChild(createTile(a, b, 'board'));
+    });
+  } else {
+    boardDiv.innerHTML = '<div>Первый ход...</div>';
+  }
+  
+  // Боковые игроки
+  const sideContainer = document.getElementById('side-players-container');
+  sideContainer.innerHTML = '';
+  const opponents = ts.players.filter(p => p.id !== state.player.id);
+  opponents.forEach((p, idx) => {
+    const side = idx % 2 === 0 ? 'side-left' : 'side-right';
+    const div = document.createElement('div');
+    div.className = `side-player ${side}`;
+    div.innerHTML = `
+      <div>${escapeHtml(p.name)}</div>
+      <div class="player-score">${ts.scores[p.id] || 0}</div>
+      <div>${Array(p.handCount).fill(0).map(() => '<div class="mini-tile"></div>').join('')}</div>
+    `;
+    sideContainer.appendChild(div);
+  });
+  
+  // Моя рука
+  const handDiv = document.getElementById('my-hand');
+  handDiv.innerHTML = '';
+  ts.myHand.forEach((tile, idx) => {
+    const el = createTile(tile[0], tile[1], 'hand', idx === state.selectedTileIdx);
+    el.addEventListener('click', () => onSelectTile(idx, tile, ts));
+    handDiv.appendChild(el);
+  });
+  document.getElementById('my-hand-count').innerText = ts.myHand.length;
+  
+  // Кнопки
+  const drawBtn = document.getElementById('draw-btn');
+  const passBtn = document.getElementById('pass-btn');
+  if (state.isMyTurn) {
+    const hasPlayable = ts.myHand.some(t => canPlayTile(t, ts.boardEnds));
+    drawBtn.disabled = !(!hasPlayable && ts.boneyardCount > 0);
+    passBtn.disabled = !(ts.boneyardCount === 0 && !hasPlayable);
+    document.getElementById('turn-banner').style.display = 'block';
+  } else {
+    drawBtn.disabled = true;
+    passBtn.disabled = true;
+    document.getElementById('turn-banner').style.display = 'none';
+  }
+}
+
+// ============ ЧАТ ============
+function toggleChat() {
+  const c = document.getElementById('chat-container');
+  c.classList.toggle('open');
+  if (c.classList.contains('open')) {
+    document.getElementById('chat-badge').style.display = 'none';
+  }
+}
+
+function handleChatKeyPress(e) {
+  if (e.key === 'Enter') sendChatMessage();
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  if (state.socket && state.tableId) {
+    state.socket.emit('chatMessage', { 
+      tableId: state.tableId, 
+      message: message, 
+      playerName: state.player.name 
+    });
+    addChatMessage(state.player.name, message, true);
+    input.value = '';
+  } else {
+    showToast('Чат доступен только за столом');
+  }
+}
+
+function addChatMessage(sender, message, isMy) {
+  const container = document.getElementById('chat-messages');
+  if (container.querySelector('div[style*="text-align:center"]')) {
+    container.innerHTML = '';
+  }
+  const div = document.createElement('div');
+  div.className = `chat-message ${isMy ? 'my' : 'other'}`;
+  div.innerHTML = `
+    <div class="chat-sender">${escapeHtml(sender)}</div>
+    <div>${escapeHtml(message)}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  
+  if (!document.getElementById('chat-container').classList.contains('open') && !isMy) {
+    const badge = document.getElementById('chat-badge');
+    badge.style.display = 'flex';
+    badge.innerText = (parseInt(badge.innerText) || 0) + 1;
+  }
+}
+
+// ============ НАСТРОЙКИ ============
+function toggleSettings() {
+  const p = document.getElementById('settings-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function changeTheme(t) {
+  document.body.style.setProperty('--felt', t === 'dark' ? '#1a2a1a' : '#1a472a');
+}
+
+// ============ ИНИЦИАЛИЗАЦИЯ ============
 const savedName = localStorage.getItem('domino_name');
 if (savedName) state.player.name = savedName;
 document.getElementById('lobby-name').innerText = state.player.name;
 
-const socket = io(window.location.origin, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 10 });
+// Подключение к сокету
+const socket = io(window.location.origin, { 
+  transports: ['websocket', 'polling'], 
+  reconnection: true,
+  reconnectionAttempts: 10
+});
 state.socket = socket;
 
-socket.on('connect', () => { console.log('Connected'); socket.emit('register', { name: state.player.name, avatar: state.player.avatar }); refreshTables(); showToast('✅ Подключено к серверу'); });
-socket.on('connect_error', (err) => { console.error('Connection error:', err); showToast('⚠️ Ошибка подключения'); });
-socket.on('registered', ({ id }) => { state.player.id = id; console.log('Registered:', id); });
-socket.on('tablesList', (tables) => { state.allTables = tables; renderTables(tables); });
-socket.on('tablesUpdate', (tables) => { state.allTables = tables; if (document.getElementById('lobby-screen').classList.contains('active')) renderTables(tables); });
-socket.on('tableCreated', ({ tableId }) => { state.tableId = tableId; showScreen('waiting-screen'); document.getElementById('table-id-display').innerText = tableId; showToast('Стол создан!'); });
-socket.on('tableState', (ts) => { state.tableState = ts; if (ts.status === 'waiting') renderWaiting(ts); else if (ts.status === 'playing') renderGame(ts); });
-socket.on('playerJoined', ({ player }) => { showToast(`${player.name} присоединился`); addChatMessage('Система', `${player.name} присоединился`, false); });
-socket.on('playerLeft', () => { showToast('Игрок покинул стол'); });
-socket.on('gameStarted', (ts) => { showScreen('game-screen'); renderGame(ts); showToast('Игра началась!'); addChatMessage('Система', 'Игра началась! Удачи!', false); });
-socket.on('tilePlayed', ({ playerName }) => { if (playerName !== state.player.name) addChatMessage('Система', `${playerName} сделал ход`, false); });
-socket.on('tileDrawn', ({ tile }) => { if (tile) showToast(`Взята кость [${tile[0]}|${tile[1]}]`); });
-socket.on('roundEnd', ({ winner }) => { if (winner === state.player.id) { showToast('🎉 Вы выиграли раунд!'); addChatMessage('Система', 'Вы выиграли раунд!', false); } });
-socket.on('gameOver', ({ winner }) => { const isWin = (winner === state.player.id); showToast(isWin ? '🏆 ПОБЕДА! 🏆' : 'Партия окончена'); addChatMessage('Система', isWin ? 'Вы победили в партии!' : 'Партия завершена', false); });
-socket.on('chatMessage', ({ playerName, message }) => { if (playerName !== state.player.name) addChatMessage(playerName, message, false); });
-socket.on('error', (msg) => showToast('⚠️ ' + msg));
+socket.on('connect', () => {
+  console.log('Socket connected');
+  showToast('✅ Подключено к серверу');
+  socket.emit('register', { name: state.player.name, avatar: state.player.avatar });
+  refreshTables();
+});
 
-window.showNameModal = showNameModal; window.savePlayerName = savePlayerName; window.closeModal = closeModal; window.showCreateModal = showCreateModal; window.createTable = createTable; window.joinTable = joinTable; window.quickJoin = quickJoin; window.refreshTables = refreshTables; window.filterTables = filterTables; window.leaveTable = leaveTable; window.startGame = startGame; window.drawFromBoneyard = drawFromBoneyard; window.passTurn = passTurn; window.toggleChat = toggleChat; window.sendChatMessage = sendChatMessage; window.handleChatKeyPress = handleChatKeyPress; window.toggleSettings = toggleSettings; window.changeTheme = changeTheme;
+socket.on('connect_error', (err) => {
+  console.error('Connection error:', err);
+  showToast('⚠️ Ошибка подключения к серверу');
+});
+
+socket.on('registered', ({ id }) => {
+  state.player.id = id;
+  console.log('Registered with id:', id);
+});
+
+socket.on('tablesList', (tables) => {
+  state.allTables = tables;
+  renderTables(tables);
+});
+
+socket.on('tablesUpdate', (tables) => {
+  state.allTables = tables;
+  if (document.getElementById('lobby-screen').classList.contains('active')) {
+    renderTables(tables);
+  }
+});
+
+socket.on('tableCreated', ({ tableId }) => {
+  state.tableId = tableId;
+  showScreen('waiting-screen');
+  document.getElementById('table-id-display').innerText = tableId;
+  showToast('Стол создан! Ожидайте игроков');
+});
+
+socket.on('tableState', (ts) => {
+  state.tableState = ts;
+  if (ts.status === 'waiting') {
+    renderWaiting(ts);
+  } else if (ts.status === 'playing') {
+    renderGame(ts);
+  }
+});
+
+socket.on('playerJoined', ({ player }) => {
+  showToast(`${player.name} присоединился`);
+  addChatMessage('Система', `${player.name} присоединился`, false);
+});
+
+socket.on('playerLeft', () => {
+  showToast('Игрок покинул стол');
+});
+
+socket.on('gameStarted', (ts) => {
+  showScreen('game-screen');
+  renderGame(ts);
+  playSound();
+  showToast('Игра началась! Удачи!');
+  addChatMessage('Система', 'Игра началась! Удачи!', false);
+});
+
+socket.on('tilePlayed', ({ playerName }) => {
+  playSound();
+  if (playerName !== state.player.name) {
+    addChatMessage('Система', `${playerName} сделал ход`, false);
+  }
+});
+
+socket.on('tileDrawn', ({ tile }) => {
+  if (tile) showToast(`Вы взяли кость [${tile[0]}|${tile[1]}]`);
+});
+
+socket.on('roundEnd', ({ winner }) => {
+  if (winner === state.player.id) {
+    playSound();
+    showToast('🎉 Вы выиграли раунд! 🎉');
+    addChatMessage('Система', 'Вы выиграли раунд!', false);
+  } else {
+    showToast('Раунд окончен');
+  }
+});
+
+socket.on('gameOver', ({ winner }) => {
+  const isWin = (winner === state.player.id);
+  playSound();
+  showToast(isWin ? '🏆 ПОБЕДА В ПАРТИИ! 🏆' : 'Партия окончена');
+  addChatMessage('Система', isWin ? 'Вы победили в партии!' : 'Партия завершена', false);
+  setTimeout(() => leaveTable(), 3000);
+});
+
+socket.on('chatMessage', ({ playerName, message }) => {
+  if (playerName !== state.player.name) {
+    addChatMessage(playerName, message, false);
+  }
+});
+
+socket.on('error', (msg) => {
+  showToast('⚠️ ' + msg);
+});
+
+// Глобальные функции
+window.showNameModal = showNameModal;
+window.savePlayerName = savePlayerName;
+window.closeModal = closeModal;
+window.showCreateModal = showCreateModal;
+window.createTable = createTable;
+window.joinTable = joinTable;
+window.quickJoin = quickJoin;
+window.refreshTables = refreshTables;
+window.filterTables = filterTables;
+window.leaveTable = leaveTable;
+window.startGame = startGame;
+window.drawFromBoneyard = drawFromBoneyard;
+window.passTurn = passTurn;
+window.toggleChat = toggleChat;
+window.sendChatMessage = sendChatMessage;
+window.handleChatKeyPress = handleChatKeyPress;
+window.toggleSettings = toggleSettings;
+window.changeTheme = changeTheme;
 </script>
 </body>
 </html>
