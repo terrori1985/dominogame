@@ -1,7 +1,7 @@
 {
   "name": "domino-tma",
   "version": "1.0.0",
-  "description": "Domino Telegram Mini App",
+  "description": "Domino Multiplayer Game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
