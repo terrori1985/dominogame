@@ -95,17 +95,22 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Roboto',sans-serif
   background:linear-gradient(180deg,#c49a4e 0%,#a0783a 30%,var(--wood) 60%,var(--wood3) 100%);
   box-shadow:0 8px 50px rgba(0,0,0,.85),inset 0 2px 5px rgba(255,255,255,.22),inset 0 -4px 10px rgba(0,0,0,.5),0 0 0 2px #5a3818,0 0 0 4px #3a2010}
 
-/* Inner felt */
+/* Inner felt — overflow visible so canvas can size to content */
 .tin{position:absolute;inset:7px;border-radius:50%;
   background:radial-gradient(ellipse 80% 70% at 50% 40%,var(--felt) 0%,var(--felt2) 55%,var(--felt3) 100%);
   box-shadow:inset 0 4px 24px rgba(0,0,0,.5),inset 0 -2px 12px rgba(0,0,0,.35);
-  overflow:hidden;display:flex;align-items:center;justify-content:center}
-.tin::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 38% at 50% 28%,rgba(255,255,255,.055) 0%,transparent 55%);border-radius:50%;pointer-events:none}
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  transition:all .3s ease}
+.tin::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 38% at 50% 28%,rgba(255,255,255,.055) 0%,transparent 55%);border-radius:50%;pointer-events:none;z-index:4}
 
-/* Board - canvas snake */
-#board-canvas{position:absolute;inset:0;border-radius:50%;z-index:2;touch-action:pan-x pan-y}
-.bhint{color:rgba(255,255,255,.25);font-size:13px;text-align:center;padding:0 12px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;white-space:nowrap;width:80%}
-/* Board ends */
+/* Board canvas — centered, not clipped */
+#board-canvas{
+  position:relative;z-index:2;
+  display:block;flex-shrink:0;
+  border-radius:4px;
+  touch-action:none;
+}
+.bhint{color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:0 16px;z-index:3;pointer-events:none;white-space:normal;width:70%;line-height:1.4}
 
 /* Boneyard - left side of table */
 .byard{position:absolute;left:-13%;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;z-index:5}
@@ -527,207 +532,399 @@ function mkDotGrid(n){
 }
 
 // =====================================================
-// CANVAS SNAKE BOARD RENDERER
+// CANVAS SNAKE BOARD — v3
+// Tiles: W=28 (short side), H=56 (long side), always portrait
+// On board: horizontal tiles rotated 90deg visually = landscape
+// Snake: right→ turn down↓ turn left← turn up↑ repeat
+// Table oval grows to fit all tiles
 // =====================================================
-const TILE_W=32, TILE_H=56, TILE_GAP=3; // board tile dims
-const HALF=TILE_H/2;
+
+// Tile dimensions on canvas (portrait = vertical tile)
+const TW = 28;   // tile short side (width)
+const TH = 54;   // tile long side (height)
+const TGAP = 6;  // gap between tiles
 
 // Tile styles for canvas
-const CANVAS_STYLES={
-  ivory:{bg1:'#fefaf0',bg2:'#ede0aa',border:'#c8ad70',dot:'#2a1a08',divider:'rgba(0,0,0,.18)'},
-  black:{bg1:'#353535',bg2:'#1e1e1e',border:'#555',dot:'#f0f0f0',divider:'rgba(255,255,255,.15)'},
-  wood:{bg1:'#d4aa78',bg2:'#b07840',border:'#7a5020',dot:'#3a1808',divider:'rgba(0,0,0,.25)'}
+const CSTYLE = {
+  ivory: { bg1:'#fefcf4', bg2:'#ede0b0', bdr:'#c4aa68', dot:'#1e1208', div:'rgba(0,0,0,.2)' },
+  black: { bg1:'#3a3a3a', bg2:'#202020', bdr:'#606060', dot:'#eeeeee', div:'rgba(255,255,255,.18)' },
+  wood:  { bg1:'#d8b080', bg2:'#a86e30', bdr:'#7a4e18', dot:'#2e1408', div:'rgba(0,0,0,.28)' }
 };
 
-function drawDominoOnCanvas(ctx,x,y,a,b,isHz,isNew,scale){
-  scale=scale||1;
-  const cs=CANVAS_STYLES[tSt]||CANVAS_STYLES.ivory;
-  const w=isHz?TILE_H:TILE_W, h=isHz?TILE_W:TILE_H;
-  const sw=w*scale, sh=h*scale;
+// Dot positions in a 3×3 grid [row, col]
+const DP2 = {
+  0:[], 1:[[1,1]], 2:[[0,0],[2,2]], 3:[[0,0],[1,1],[2,2]],
+  4:[[0,0],[0,2],[2,0],[2,2]], 5:[[0,0],[0,2],[1,1],[2,0],[2,2]],
+  6:[[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]]
+};
+
+/* Draw one domino tile at (x,y) top-left, no rotation.
+   isHz = tile laid horizontally (long side = horizontal).
+   When isHz=true: drawn width=TH, height=TW.
+   When isHz=false: drawn width=TW, height=TH.  */
+function drawTileCanvas(ctx, x, y, a, b, isHz) {
+  const cs = CSTYLE[tSt] || CSTYLE.ivory;
+  const w = isHz ? TH : TW;
+  const h = isHz ? TW : TH;
+  const rad = 5;
 
   ctx.save();
-  ctx.translate(x+sw/2,y+sh/2);
-  if(isNew){
-    // slight bounce scale on new tile
+
+  // Drop shadow
+  ctx.shadowColor = 'rgba(0,0,0,.45)';
+  ctx.shadowBlur = 7;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 3;
+
+  // Body fill with gradient
+  const grd = ctx.createLinearGradient(x, y, x + w, y + h);
+  grd.addColorStop(0, cs.bg1);
+  grd.addColorStop(1, cs.bg2);
+  rRect(ctx, x, y, w, h, rad);
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  // Clear shadow before stroke
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+  // Border
+  ctx.strokeStyle = cs.bdr;
+  ctx.lineWidth = 1.5;
+  rRect(ctx, x, y, w, h, rad);
+  ctx.stroke();
+
+  // Top-left highlight
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 1;
+  rRect(ctx, x + 1.5, y + 1.5, w - 3, h - 3, rad - 1);
+  ctx.stroke();
+
+  // Divider line
+  ctx.strokeStyle = cs.div;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (isHz) {
+    // vertical divider at center
+    ctx.moveTo(x + w/2, y + 4);
+    ctx.lineTo(x + w/2, y + h - 4);
+  } else {
+    // horizontal divider at center
+    ctx.moveTo(x + 4, y + h/2);
+    ctx.lineTo(x + w - 4, y + h/2);
   }
-  ctx.translate(-sw/2,-sh/2);
+  ctx.stroke();
 
-  // Shadow
-  ctx.shadowColor='rgba(0,0,0,.5)';
-  ctx.shadowBlur=6*scale;
-  ctx.shadowOffsetX=2*scale;
-  ctx.shadowOffsetY=3*scale;
-
-  // Body
-  const r=6*scale;
-  roundRect(ctx,0,0,sw,sh,r);
-  const grad=ctx.createLinearGradient(0,0,sw,sh);
-  grad.addColorStop(0,cs.bg1);grad.addColorStop(1,cs.bg2);
-  ctx.fillStyle=grad;ctx.fill();
-  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
-  ctx.strokeStyle=cs.border;ctx.lineWidth=1.5*scale;ctx.stroke();
-
-  // Highlight
-  roundRect(ctx,1.5*scale,1.5*scale,sw-3*scale,sh-3*scale,r-1);
-  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=.8*scale;ctx.stroke();
-
-  // Divider
-  ctx.strokeStyle=cs.divider;ctx.lineWidth=1.5*scale;
-  if(isHz){
-    ctx.beginPath();ctx.moveTo(sw/2,4*scale);ctx.lineTo(sw/2,sh-4*scale);ctx.stroke();
-  }else{
-    ctx.beginPath();ctx.moveTo(4*scale,sh/2);ctx.lineTo(sw-4*scale,sh/2);ctx.stroke();
+  // Draw pips for each half
+  if (isHz) {
+    // left half: a, right half: b
+    const hW = TW;   // each half is TW wide (short side)
+    const hH = TW;   // and TW tall
+    drawPips2(ctx, a, x + 1,           y + 1,      hW - 2, hH - 2, cs.dot);
+    drawPips2(ctx, b, x + TH/2 + 1,   y + 1,      hW - 2, hH - 2, cs.dot);
+  } else {
+    // top half: a, bottom half: b
+    const hW = TW;
+    const hH = TH/2;
+    drawPips2(ctx, a, x + 1, y + 1,          hW - 2, hH - 2, cs.dot);
+    drawPips2(ctx, b, x + 1, y + TH/2 + 1,  hW - 2, hH - 2, cs.dot);
   }
 
-  // Dots
-  if(isHz){
-    drawPips(ctx,a,1*scale,1*scale,TILE_W*scale-2*scale,TILE_W*scale-2*scale,cs.dot,scale);
-    drawPips(ctx,b,TILE_W*scale+1*scale,1*scale,TILE_W*scale-2*scale,TILE_W*scale-2*scale,cs.dot,scale);
-  }else{
-    drawPips(ctx,a,1*scale,1*scale,TILE_W*scale-2*scale,HALF*scale-2*scale,cs.dot,scale);
-    drawPips(ctx,b,1*scale,HALF*scale+1*scale,TILE_W*scale-2*scale,HALF*scale-2*scale,cs.dot,scale);
-  }
   ctx.restore();
 }
 
-function drawPips(ctx,n,ox,oy,bw,bh,color,scale){
-  const positions=DP[n]||[];
-  const cw=bw/3,ch=bh/3;
-  const r=Math.min(cw,ch)*0.3;
-  ctx.fillStyle=color;
-  positions.forEach(([row,col])=>{
-    const cx=ox+col*cw+cw/2;
-    const cy=oy+row*ch+ch/2;
-    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    // inner highlight
-    ctx.fillStyle='rgba(255,255,255,.12)';
-    ctx.beginPath();ctx.arc(cx-r*.25,cy-r*.3,r*.4,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=color;
+function drawPips2(ctx, n, ox, oy, bw, bh, color) {
+  const pts = DP2[n] || [];
+  if (!pts.length) return;
+  const cw = bw / 3, ch = bh / 3;
+  const r = Math.min(cw, ch) * 0.28;
+  pts.forEach(([row, col]) => {
+    const cx = ox + col * cw + cw / 2;
+    const cy = oy + row * ch + ch / 2;
+    // Main dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    // Tiny highlight
+    ctx.beginPath();
+    ctx.arc(cx - r * .28, cy - r * .3, r * .38, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fill();
   });
 }
 
-function roundRect(ctx,x,y,w,h,r){
+function rRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
-// Snake layout: place tiles one by one, turning when approaching edge
-// Direction: 0=right,1=down,2=left,3=up
-function computeSnakeLayout(board,cw,ch){
-  if(!board||!board.length)return[];
-  const pad=14; // padding from oval edge (it clips with overflow:hidden)
-  const positions=[];
-  let x=cw/2,y=ch/2;
-  let dir=0; // start going right
-  const step=TILE_H+TILE_GAP; // horizontal: tile is H wide when hz
-  const stepV=TILE_W+TILE_GAP;// vertical: tile is W wide when vertical
+// ---- Snake layout ----
+// Returns array of {x,y,isHz} where x,y = top-left corner of tile on canvas.
+// Canvas size is computed to exactly fit all tiles.
+// Returns {positions, canvasW, canvasH}
+function snakeLayout(board) {
+  if (!board || !board.length) return { positions: [], canvasW: 0, canvasH: 0 };
 
-  // boundaries (inset from oval edge)
-  const minX=pad+TILE_H/2, maxX=cw-pad-TILE_H/2;
-  const minY=pad+TILE_W/2, maxY=ch-pad-TILE_W/2;
+  const PAD = 16; // padding around snake
+  const GAP = TGAP;
 
-  // First tile centered
-  positions.push({x,y,isHz:true});
+  // Step sizes:
+  // Moving horizontally: tile is Hz → width=TH, height=TW
+  const stepHz = TH + GAP;  // advance X
+  // Moving vertically: tile is vertical → width=TW, height=TH
+  const stepVt = TH + GAP;  // advance Y (same step so corners align)
 
-  for(let i=1;i<board.length;i++){
-    const prev=positions[i-1];
-    // Try to continue in current dir
-    let nx=prev.x,ny=prev.y,isHz=true;
-    let turned=false;
+  // We track tile positions as {col, row} in a virtual grid,
+  // then convert to pixel coords after computing bounds.
+  // Direction: 0=right, 1=down, 2=left, 3=up
+  // isHz: true when moving right/left, false when moving up/down
 
-    if(dir===0){nx=prev.x+step;ny=prev.y;isHz=true;} // →
-    else if(dir===1){nx=prev.x;ny=prev.y+stepV;isHz=false;} // ↓
-    else if(dir===2){nx=prev.x-step;ny=prev.y;isHz=true;} // ←
-    else if(dir===3){nx=prev.x;ny=prev.y-stepV;isHz=false;} // ↑
+  const cells = []; // {col, row, isHz}
+  let col = 0, row = 0, dir = 0;
 
-    // Check if next position stays inside oval bounds
-    // Use a simple rectangular check (oval is bigger)
-    const half=isHz?TILE_H/2:TILE_W/2;
-    const hv=isHz?TILE_W/2:TILE_H/2;
-    const inBounds=nx-half>=minX&&nx+half<=maxX&&ny-hv>=minY&&ny+hv<=maxY;
+  cells.push({ col, row, isHz: true });
 
-    if(!inBounds){
-      // Turn clockwise
-      dir=(dir+1)%4;
-      turned=true;
-      if(dir===0){nx=prev.x+step;ny=prev.y;isHz=true;}
-      else if(dir===1){nx=prev.x;ny=prev.y+stepV;isHz=false;}
-      else if(dir===2){nx=prev.x-step;ny=prev.y;isHz=true;}
-      else if(dir===3){nx=prev.x;ny=prev.y-stepV;isHz=false;}
-    }
-    positions.push({x:nx,y:ny,isHz});
+  for (let i = 1; i < board.length; i++) {
+    const prev = cells[i - 1];
+    let nc, nr, isHz;
+
+    // Step in current direction
+    if (dir === 0) { nc = prev.col + 1; nr = prev.row; isHz = true; }
+    else if (dir === 1) { nc = prev.col; nr = prev.row + 1; isHz = false; }
+    else if (dir === 2) { nc = prev.col - 1; nr = prev.row; isHz = true; }
+    else { nc = prev.col; nr = prev.row - 1; isHz = false; }
+
+    cells.push({ col: nc, row: nr, isHz });
   }
-  return positions;
+
+  // Find bounding box in col/row space
+  const minCol = Math.min(...cells.map(c => c.col));
+  const maxCol = Math.max(...cells.map(c => c.col));
+  const minRow = Math.min(...cells.map(c => c.row));
+  const maxRow = Math.max(...cells.map(c => c.row));
+
+  // Convert grid cells to pixel positions
+  // Each grid unit = TH+GAP (both Hz and Vt tiles advance by same unit)
+  const unit = TH + GAP;
+  const positions = cells.map(c => {
+    const px = (c.col - minCol) * unit + PAD;
+    const py = (c.row - minRow) * unit + PAD;
+    return { x: px, y: py, isHz: c.isHz };
+  });
+
+  // Canvas size: cover all tiles
+  const cols = maxCol - minCol + 1;
+  const rows = maxRow - minRow + 1;
+  // Width needed: each horizontal slot = TH, last slot no gap
+  const canvasW = cols * unit - GAP + PAD * 2;
+  // Height needed: each vertical slot = TH
+  const canvasH = rows * unit - GAP + PAD * 2;
+
+  return { positions, canvasW, canvasH };
 }
 
-let _boardAnimFrame=null;
-let _lastBoardLen=0;
-let _newTileIdx=-1;
-let _animProgress=0;
-let _animStart=0;
-const ANIM_DUR=350;
+// ---- Snake turn logic ----
+// How many tiles fit in one row given available width?
+// We dynamically compute turn points based on table width.
+let _snakeColLimit = 5; // recalculated per render
 
-function renderBoard(board,ends){
-  const hint=document.getElementById('board-hint');
-  const canvas=document.getElementById('board-canvas');
-  const tin=document.getElementById('tin');
-  // Size canvas to match tin
-  const rect=tin.getBoundingClientRect();
-  const dpr=window.devicePixelRatio||1;
-  const cw=rect.width||280, ch=rect.height||160;
-  canvas.width=cw*dpr;canvas.height=ch*dpr;
-  canvas.style.width=cw+'px';canvas.style.height=ch+'px';
+function snakeLayoutAdaptive(board, tableW, tableH) {
+  if (!board || !board.length) return { positions: [], canvasW: 10, canvasH: 10 };
 
-  if(!board||!board.length){hint.style.display='block';drawEmptyBoard(canvas,cw,ch,dpr);return;}
-  hint.style.display='none';
+  const PAD = 12;
+  const GAP = TGAP;
+  const unit = TH + GAP;
 
-  // Detect new tile
-  if(board.length>_lastBoardLen){
-    _newTileIdx=board.length-1;
-    _animStart=performance.now();
-    _animProgress=0;
-    if(_boardAnimFrame)cancelAnimationFrame(_boardAnimFrame);
-    animateBoard(canvas,board,ends,cw,ch,dpr);
-    _lastBoardLen=board.length;
+  // Max tiles per row based on available table inner width
+  const availW = tableW - PAD * 2;
+  const availH = tableH - PAD * 2;
+  const colLimit = Math.max(3, Math.floor(availW / unit));
+  const rowLimit = Math.max(2, Math.floor(availH / unit));
+
+  const cells = [];
+  let col = 0, row = 0, dir = 0;
+  // Right limit = colLimit-1, Left limit = 0
+  // Down limit = rowLimit-1, Up limit = 0
+  let colMin = 0, colMax = colLimit - 1;
+  let rowMin = 0, rowMax = rowLimit - 1;
+
+  cells.push({ col, row, isHz: true });
+
+  for (let i = 1; i < board.length; i++) {
+    const prev = cells[i - 1];
+    let nc, nr, isHz;
+
+    // Attempt step in current direction
+    if (dir === 0) { nc = prev.col + 1; nr = prev.row; isHz = true; }
+    else if (dir === 1) { nc = prev.col; nr = prev.row + 1; isHz = false; }
+    else if (dir === 2) { nc = prev.col - 1; nr = prev.row; isHz = true; }
+    else           { nc = prev.col; nr = prev.row - 1; isHz = false; }
+
+    // Check bounds and turn if needed
+    const outOfBounds = nc > colMax || nc < colMin || nr > rowMax || nr < rowMin;
+    if (outOfBounds) {
+      dir = (dir + 1) % 4;
+      // Expand bounds if we've used all rows
+      if (dir === 1) { colMax = prev.col; }
+      if (dir === 3) { colMin = prev.col; }
+      if (dir === 0) { rowMin = prev.row; }
+      if (dir === 2) { rowMax = prev.row; }
+      // Recompute step with new direction
+      if (dir === 0) { nc = prev.col + 1; nr = prev.row; isHz = true; }
+      else if (dir === 1) { nc = prev.col; nr = prev.row + 1; isHz = false; }
+      else if (dir === 2) { nc = prev.col - 1; nr = prev.row; isHz = true; }
+      else           { nc = prev.col; nr = prev.row - 1; isHz = false; }
+    }
+
+    cells.push({ col: nc, row: nr, isHz });
+  }
+
+  // Bounds of actual cells used
+  const usedMinCol = Math.min(...cells.map(c => c.col));
+  const usedMaxCol = Math.max(...cells.map(c => c.col));
+  const usedMinRow = Math.min(...cells.map(c => c.row));
+  const usedMaxRow = Math.max(...cells.map(c => c.row));
+
+  const positions = cells.map(c => ({
+    x: (c.col - usedMinCol) * unit + PAD,
+    y: (c.row - usedMinRow) * unit + PAD,
+    isHz: c.isHz
+  }));
+
+  const usedCols = usedMaxCol - usedMinCol + 1;
+  const usedRows = usedMaxRow - usedMinRow + 1;
+  const canvasW = usedCols * unit - GAP + PAD * 2;
+  const canvasH = usedRows * unit - GAP + PAD * 2;
+
+  return { positions, canvasW, canvasH };
+}
+
+// ---- Board render entry point ----
+let _boardAnimFrame = null;
+let _lastBoardLen = 0;
+let _newTileIdx = -1;
+let _animStart = 0;
+const ANIM_DUR = 320;
+
+function renderBoard(board, ends) {
+  const hint = document.getElementById('board-hint');
+  const canvas = document.getElementById('board-canvas');
+  const tin = document.getElementById('tin');
+  const wrap = document.getElementById('twrap');
+  const tout = wrap ? wrap.querySelector('.tout') : null;
+
+  if (!board || !board.length) {
+    hint.style.display = 'block';
+    canvas.width = 10; canvas.height = 10;
+    if (ends) { document.getElementById('bends').style.display = 'none'; }
     return;
   }
-  _lastBoardLen=board.length;
-  _newTileIdx=-1;
-  drawBoard(canvas,board,ends,cw,ch,dpr,1,board.length-1);
-  if(ends){document.getElementById('bends').style.display='flex';document.getElementById('el').textContent=ends.left;document.getElementById('er').textContent=ends.right;}
+  hint.style.display = 'none';
+
+  const dpr = window.devicePixelRatio || 1;
+
+  // Get current table inner size
+  const tinRect = tin.getBoundingClientRect();
+  const tableW = tinRect.width || 260;
+  const tableH = tinRect.height || 150;
+
+  // Compute snake layout fitting in available table size
+  const { positions, canvasW, canvasH } = snakeLayoutAdaptive(board, tableW, tableH);
+
+  // If snake is LARGER than current table inner size: expand the oval
+  // We change the table outer padding-bottom % to grow the oval height
+  if (tout) {
+    const wrapW = wrap.offsetWidth || 300;
+    // Natural height is 57% of width. If we need more height, grow it.
+    const neededPct = Math.max(57, Math.ceil((canvasH + 36) / wrapW * 100));
+    if (neededPct !== parseFloat(tout.dataset.lastPct || '57')) {
+      tout.style.paddingBottom = neededPct + '%';
+      tout.dataset.lastPct = neededPct;
+      // Re-read tin size after layout change
+      requestAnimationFrame(() => renderBoard(board, ends));
+      return;
+    }
+  }
+
+  // Size canvas exactly to snake content
+  canvas.width = canvasW * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  canvas.style.position = 'relative';
+  canvas.style.left = '';
+  canvas.style.top = '';
+  canvas.style.transform = '';
+
+  // Animate new tile
+  const isNewTile = board.length > _lastBoardLen;
+  if (isNewTile) {
+    _newTileIdx = board.length - 1;
+    _animStart = performance.now();
+    if (_boardAnimFrame) cancelAnimationFrame(_boardAnimFrame);
+    _animateBoard(canvas, board, positions, dpr);
+  } else {
+    _newTileIdx = -1;
+    _drawAllTiles(canvas, board, positions, dpr, -1, 1);
+  }
+  _lastBoardLen = board.length;
+
+  // Ends badges
+  if (ends) {
+    document.getElementById('bends').style.display = 'flex';
+    document.getElementById('el').textContent = ends.left;
+    document.getElementById('er').textContent = ends.right;
+  } else {
+    document.getElementById('bends').style.display = 'none';
+  }
 }
 
-function animateBoard(canvas,board,ends,cw,ch,dpr){
-  const now=performance.now();
-  const t=Math.min((now-_animStart)/ANIM_DUR,1);
-  const ease=1-Math.pow(1-t,3);
-  drawBoard(canvas,board,ends,cw,ch,dpr,ease,_newTileIdx);
-  if(t<1){_boardAnimFrame=requestAnimationFrame(()=>animateBoard(canvas,board,ends,cw,ch,dpr));}
-  else{_newTileIdx=-1;}
-  if(ends){document.getElementById('bends').style.display='flex';document.getElementById('el').textContent=ends.left;document.getElementById('er').textContent=ends.right;}
+function _animateBoard(canvas, board, positions, dpr) {
+  const elapsed = performance.now() - _animStart;
+  const t = Math.min(elapsed / ANIM_DUR, 1);
+  // Ease out cubic
+  const sc = 1 - Math.pow(1 - t, 3);
+  _drawAllTiles(canvas, board, positions, dpr, _newTileIdx, sc);
+  if (t < 1) {
+    _boardAnimFrame = requestAnimationFrame(() => _animateBoard(canvas, board, positions, dpr));
+  }
 }
 
-function drawEmptyBoard(canvas,cw,ch,dpr){
-  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
-}
+function _drawAllTiles(canvas, board, positions, dpr, animIdx, animSc) {
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width / dpr;
+  const ch = canvas.height / dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
 
-function drawBoard(canvas,board,ends,cw,ch,dpr,newScale,newIdx){
-  const ctx=canvas.getContext('2d');
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,cw,ch);
-  const positions=computeSnakeLayout(board,cw,ch);
-  board.forEach((entry,i)=>{
-    const pos=positions[i];if(!pos)return;
-    const[a,b]=entry.tile;
-    const sc=(i===newIdx)?newScale:1;
-    const tw=pos.isHz?TILE_H*sc:TILE_W*sc;
-    const th=pos.isHz?TILE_W*sc:TILE_H*sc;
-    drawDominoOnCanvas(ctx,pos.x-tw/2,pos.y-th/2,a,b,pos.isHz,i===newIdx,sc);
+  board.forEach((entry, i) => {
+    const pos = positions[i];
+    if (!pos) return;
+    const [a, b] = entry.tile;
+    const isNew = (i === animIdx);
+
+    if (isNew && animSc < 1) {
+      // Scale from center of tile
+      const tw = pos.isHz ? TH : TW;
+      const th = pos.isHz ? TW : TH;
+      const cx = pos.x + tw / 2;
+      const cy = pos.y + th / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(animSc, animSc);
+      ctx.translate(-tw / 2, -th / 2);
+      drawTileCanvas(ctx, 0, 0, a, b, pos.isHz);
+      ctx.restore();
+    } else {
+      drawTileCanvas(ctx, pos.x, pos.y, a, b, pos.isHz);
+    }
   });
 }
 
